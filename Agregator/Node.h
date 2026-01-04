@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include "Consumer.h"
 using namespace std;
 
 enum class OperationMode {
@@ -15,9 +16,10 @@ private:
 	vector<Node*> children;
 	double aggregatedConsumption;
 	OperationMode mode;
-
+	
 	//za BATCH rezim
 	vector<double> pendingConsumptions;
+	vector<Consumer*> nodeConsumers;
 
 public:
 	Node(int id, OperationMode m = OperationMode::AUTOMATIC);
@@ -29,7 +31,7 @@ public:
 	void sendToParent();
 	void requestConsumption();
 	void setMode(OperationMode m);
-
+	void addConsumer(Consumer* consumer);
 	int getId() const;
 	double getAggregatedConsumption() const;
 

@@ -47,6 +47,13 @@ void Node::sendToParent() {
 }
 
 void Node::requestConsumption() {
+	//prvo trazi potrosnju od potrosaca
+	for (Consumer* consumer : nodeConsumers) {
+		double consumption = consumer->generateConsumption();
+		receiveConsumption(consumption);
+	}
+
+	//zatim trazi od child cvorova
 	for (Node* child : children)
 	{
 		child->requestConsumption();
@@ -69,4 +76,8 @@ void Node::processBatch() {
 	aggregate();
 	sendToParent();
 	pendingConsumptions.clear();
+}
+void Node::addConsumer(Consumer* consumer)
+{
+	nodeConsumers.push_back(consumer);
 }
