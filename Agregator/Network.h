@@ -20,6 +20,7 @@ public:
 	Node* findNode(int nodeId);
 	void sendRequest(int targetNodeId);
 	void sendRequestToAll();
-
+	void resetAllConsumptions();
+	void setAllNodesMode(OperationMode mode);
 	Node* getRoot() const;
 };

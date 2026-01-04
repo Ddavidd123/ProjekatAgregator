@@ -10,12 +10,23 @@ Network::~Network() {
 		delete pair.second;
 
 	}
+	allNodes.clear();
+
+	//obrisi sve potrosace
 	for (Consumer* consumer : consumers) {
 		delete consumer;
 	}
+	consumers.clear();
+	root = nullptr;
 }
 
 void Network::buildTree() {
+
+	// Resetuj prethodne podatke ako postoje
+	if (root != nullptr) {
+		// Obri�i staru mre�u (opciono - za sada samo kreiramo novu)
+	}
+
 	//Kreiraj root cvor (drzava)
 	root = new Node(0, OperationMode::AUTOMATIC);
 	allNodes[0] = root;
@@ -69,4 +80,16 @@ void Network::sendRequestToAll() {
 
 Node* Network::getRoot() const {
 	return root;
+}
+
+void Network::resetAllConsumptions() {
+	if (root) {
+		root->resetAggregation();
+	}
+}
+
+void Network::setAllNodesMode(OperationMode mode) {
+	for (auto pair : allNodes) {
+		pair.second->setMode(mode);
+	}
 }

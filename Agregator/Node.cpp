@@ -1,4 +1,4 @@
-#include "Node.h"
+﻿#include "Node.h"
 
 using namespace std;
 
@@ -19,7 +19,8 @@ void Node::setParent(Node* p) {
 void Node::receiveConsumption(double value) {
 	if (mode == OperationMode::AUTOMATIC) {
 		aggregatedConsumption += value;
-		sendToParent();
+		
+		//ne salje odma ceka da se podaci prikupe
 	}
 	else { //BATCH mode
 		pendingConsumptions.push_back(value);
@@ -47,17 +48,26 @@ void Node::sendToParent() {
 }
 
 void Node::requestConsumption() {
-	//prvo trazi potrosnju od potrosaca
+	// NE resetuj ovde - resetuje se samo pre početka testa kroz resetAllConsumptions()
+	// Ovde samo akumuliraj nove podatke
+	
+	// Prvo traži potrošnju od potrošača i dodaj u agregaciju
 	for (Consumer* consumer : nodeConsumers) {
 		double consumption = consumer->generateConsumption();
-		receiveConsumption(consumption);
+		aggregatedConsumption += consumption;
 	}
 
-	//zatim trazi od child cvorova
-	for (Node* child : children)
-	{
+	// Zatim traži od child čvorova (rekurzivno)
+	for (Node* child : children) {
+		double childBefore = child->getAggregatedConsumption(); // Zabeleži pre
 		child->requestConsumption();
+		double childAfter = child->getAggregatedConsumption(); // Zabeleži posle
+		// Dodaj samo NOVE podatke (razliku)
+		aggregatedConsumption += (childAfter - childBefore);
 	}
+	
+	// U AUTOMATIC režimu, root ne šalje ništa (nema parent)
+	// Child čvorovi ne treba da šalju jer parent direktno uzima njihove podatke
 }
 
 void Node::setMode(OperationMode m) {
@@ -80,4 +90,14 @@ void Node::processBatch() {
 void Node::addConsumer(Consumer* consumer)
 {
 	nodeConsumers.push_back(consumer);
+}
+
+void Node::resetAggregation() {
+	aggregatedConsumption = 0.0;
+	pendingConsumptions.clear();
+
+	// Resetuj i child čvorove rekurzivno
+	for (Node* child : children) {
+		child->resetAggregation();
+	}
 }

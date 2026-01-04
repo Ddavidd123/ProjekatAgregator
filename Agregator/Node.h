@@ -34,7 +34,7 @@ public:
 	void addConsumer(Consumer* consumer);
 	int getId() const;
 	double getAggregatedConsumption() const;
-
+	void resetAggregation();
 	//Za BATCH rezim
 	void processBatch();
 
