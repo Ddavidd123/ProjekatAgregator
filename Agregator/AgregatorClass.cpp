@@ -1,4 +1,4 @@
-﻿#include "Agregator.h"
+#include "Agregator.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -132,30 +132,9 @@ void Agregator::testWithLargeData() {
 	}
 }
 
-// Testiranje oba režima (AUTOMATIC i BATCH) za mali broj podataka
 void Agregator::testAllModesSmall() {
-	cout << "=== Test SA MALIM brojem podataka (10) za oba rezima ===\n\n";
+	cout << "=== Test SA MALIM brojem podataka (10) u BATCH rezimu ===\n\n";
 
-	// AUTOMATIC
-	cout << "[AUTOMATIC] Pokretanje testa sa 10 zahteva...\n";
-	initialize();
-	network.setAllNodesMode(OperationMode::AUTOMATIC);
-	network.resetAllConsumptions();
-
-	auto startAuto = std::chrono::high_resolution_clock::now();
-	for (int i = 0; i < 10; i++) {
-		network.sendRequestToAll();
-	}
-	auto endAuto = std::chrono::high_resolution_clock::now();
-	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
-
-	Node* rootAuto = network.getRoot();
-	double totalAuto = rootAuto ? rootAuto->getAggregatedConsumption() : 0.0;
-
-	printTotalConsumption();
-	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
-
-	// BATCH
 	cout << "[BATCH] Pokretanje testa sa 10 zahteva...\n";
 	initialize();
 	network.setAllNodesMode(OperationMode::BATCH);
@@ -180,38 +159,16 @@ void Agregator::testAllModesSmall() {
 	// Dokumentovanje u fajl
 	std::ofstream log("TestResults.txt", std::ios::app);
 	if (log.is_open()) {
-		log << "TestAllModesSmall\n";
+		log << "TestBatchSmall\n";
 		log << "Broj zahteva: 10\n";
-		log << "[AUTOMATIC] Ukupna potrosnja: " << totalAuto << " kWh, vreme: " << durationAuto.count() << " ms\n";
-		log << "[BATCH]     Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
+		log << "[BATCH] Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
 		log << "----------------------------------------\n";
 	}
 }
 
-// Testiranje oba režima (AUTOMATIC i BATCH) za veliki broj podataka
 void Agregator::testAllModesLarge() {
-	cout << "=== Test SA VELIKIM brojem podataka (~10,000) za oba rezima ===\n\n";
+	cout << "=== Test SA VELIKIM brojem podataka (~10,000) u BATCH rezimu ===\n\n";
 
-	// AUTOMATIC
-	cout << "[AUTOMATIC] Pokretanje testa sa 10.000 zahteva...\n";
-	initialize();
-	network.setAllNodesMode(OperationMode::AUTOMATIC);
-	network.resetAllConsumptions();
-
-	auto startAuto = std::chrono::high_resolution_clock::now();
-	for (int i = 0; i < 10000; i++) {
-		network.sendRequestToAll();
-	}
-	auto endAuto = std::chrono::high_resolution_clock::now();
-	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
-
-	Node* rootAuto = network.getRoot();
-	double totalAuto = rootAuto ? rootAuto->getAggregatedConsumption() : 0.0;
-
-	printTotalConsumption();
-	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
-
-	// BATCH
 	cout << "[BATCH] Pokretanje testa sa 10.000 zahteva...\n";
 	initialize();
 	network.setAllNodesMode(OperationMode::BATCH);
@@ -236,10 +193,9 @@ void Agregator::testAllModesLarge() {
 	// Dokumentovanje u fajl
 	std::ofstream log("TestResults.txt", std::ios::app);
 	if (log.is_open()) {
-		log << "TestAllModesLarge\n";
+		log << "TestBatchLarge\n";
 		log << "Broj zahteva: 10000\n";
-		log << "[AUTOMATIC] Ukupna potrosnja: " << totalAuto << " kWh, vreme: " << durationAuto.count() << " ms\n";
-		log << "[BATCH]     Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
+		log << "[BATCH] Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
 		log << "----------------------------------------\n";
 	}
 }

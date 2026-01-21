@@ -15,8 +15,8 @@ int main() {
         cout << "2. Batch rezim\n";
         cout << "3. Test sa malim brojem podataka (AUTOMATIC)\n";
         cout << "4. Test sa velikim brojem podataka (~10,000) (AUTOMATIC)\n";
-        cout << "5. Test sa malim brojem podataka za oba rezima\n";
-        cout << "6. Test sa velikim brojem podataka za oba rezima\n";
+        cout << "5. Test sa malim brojem podataka (BATCH)\n";
+        cout << "6. Test sa velikim brojem podataka (BATCH)\n";
         cout << "7. Prikazi ukupnu potrosnju\n";
         cout << "8. Posalji zahtev odredjenom delu drzave (nodeId)\n";
         cout << "9. Prikazi strukturu stabla (topologiju mreze)\n";
