@@ -18,6 +18,8 @@ int main() {
         cout << "5. Test sa malim brojem podataka za oba rezima\n";
         cout << "6. Test sa velikim brojem podataka za oba rezima\n";
         cout << "7. Prikazi ukupnu potrosnju\n";
+        cout << "8. Posalji zahtev odredjenom delu drzave (nodeId)\n";
+        cout << "9. Prikazi strukturu stabla (topologiju mreze)\n";
         cout << "0. Izlaz\n";
         cout << "Vas izbor: ";
 
@@ -44,6 +46,16 @@ int main() {
             break;
         case 7:
             aggregator.printTotalConsumption();
+            break;
+        case 8: {
+            int nodeId;
+            cout << "Unesite nodeId ciljnog dela drzave (subtree): ";
+            cin >> nodeId;
+            aggregator.sendRequestToSubtree(nodeId);
+            break;
+        }
+        case 9:
+            aggregator.printTreeStructure();
             break;
         case 0:
             cout << "Izlaz...\n";

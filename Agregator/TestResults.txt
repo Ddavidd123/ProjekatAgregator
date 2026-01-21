@@ -23,3 +23,13 @@ Broj zahteva: 10000
 Ukupna potrosnja: 2.20169e+06 kWh
 Vreme izvrsavanja: 517 ms
 ----------------------------------------
+TestWithSmallData (AUTOMATIC default)
+Broj zahteva: 10
+Ukupna potrosnja: 2278.96 kWh
+Vreme izvrsavanja: 0 ms
+----------------------------------------
+TestAllModesSmall
+Broj zahteva: 10
+[AUTOMATIC] Ukupna potrosnja: 2117.83 kWh, vreme: 0 ms
+[BATCH]     Ukupna potrosnja: 2130.25 kWh, vreme: 0 ms
+----------------------------------------
