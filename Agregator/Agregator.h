@@ -16,4 +16,6 @@ public:
 
 	void testWithSmallData();
 	void testWithLargeData();
+	void testAllModesSmall();
+	void testAllModesLarge();
 };

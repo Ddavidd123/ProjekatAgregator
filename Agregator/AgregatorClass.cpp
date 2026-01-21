@@ -100,3 +100,77 @@ void Agregator::testWithLargeData() {
 	printTotalConsumption();
 	cout << "Vreme izvrsavanja: " << duration.count() << " ms\n";
 }
+
+// Testiranje oba režima (AUTOMATIC i BATCH) za mali broj podataka
+void Agregator::testAllModesSmall() {
+	cout << "=== Test SA MALIM brojem podataka (10) za oba rezima ===\n\n";
+
+	// AUTOMATIC
+	cout << "[AUTOMATIC] Pokretanje testa sa 10 zahteva...\n";
+	initialize();
+	network.setAllNodesMode(OperationMode::AUTOMATIC);
+	network.resetAllConsumptions();
+
+	auto startAuto = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		network.sendRequestToAll();
+	}
+	auto endAuto = std::chrono::high_resolution_clock::now();
+	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
+
+	printTotalConsumption();
+	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
+
+	// BATCH
+	cout << "[BATCH] Pokretanje testa sa 10 zahteva...\n";
+	initialize();
+	network.setAllNodesMode(OperationMode::BATCH);
+	network.resetAllConsumptions();
+
+	auto startBatch = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10; i++) {
+		network.sendRequestToAll();
+	}
+	auto endBatch = std::chrono::high_resolution_clock::now();
+	auto durationBatch = chrono::duration_cast<chrono::milliseconds>(endBatch - startBatch);
+
+	printTotalConsumption();
+	cout << "[BATCH] Vreme izvrsavanja: " << durationBatch.count() << " ms\n";
+}
+
+// Testiranje oba režima (AUTOMATIC i BATCH) za veliki broj podataka
+void Agregator::testAllModesLarge() {
+	cout << "=== Test SA VELIKIM brojem podataka (~10,000) za oba rezima ===\n\n";
+
+	// AUTOMATIC
+	cout << "[AUTOMATIC] Pokretanje testa sa 10.000 zahteva...\n";
+	initialize();
+	network.setAllNodesMode(OperationMode::AUTOMATIC);
+	network.resetAllConsumptions();
+
+	auto startAuto = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10000; i++) {
+		network.sendRequestToAll();
+	}
+	auto endAuto = std::chrono::high_resolution_clock::now();
+	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
+
+	printTotalConsumption();
+	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
+
+	// BATCH
+	cout << "[BATCH] Pokretanje testa sa 10.000 zahteva...\n";
+	initialize();
+	network.setAllNodesMode(OperationMode::BATCH);
+	network.resetAllConsumptions();
+
+	auto startBatch = std::chrono::high_resolution_clock::now();
+	for (int i = 0; i < 10000; i++) {
+		network.sendRequestToAll();
+	}
+	auto endBatch = std::chrono::high_resolution_clock::now();
+	auto durationBatch = chrono::duration_cast<chrono::milliseconds>(endBatch - startBatch);
+
+	printTotalConsumption();
+	cout << "[BATCH] Vreme izvrsavanja: " << durationBatch.count() << " ms\n";
+}

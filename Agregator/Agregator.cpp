@@ -13,9 +13,11 @@ int main() {
         cout << "\nIzaberite opciju:\n";
         cout << "1. Automatski rezim\n";
         cout << "2. Batch rezim\n";
-        cout << "3. Test sa malim brojem podataka\n";
-        cout << "4. Test sa velikim brojem podataka (~10,000)\n";
-        cout << "5. Prikazi ukupnu potrosnju\n";
+        cout << "3. Test sa malim brojem podataka (AUTOMATIC)\n";
+        cout << "4. Test sa velikim brojem podataka (~10,000) (AUTOMATIC)\n";
+        cout << "5. Test sa malim brojem podataka za oba rezima\n";
+        cout << "6. Test sa velikim brojem podataka za oba rezima\n";
+        cout << "7. Prikazi ukupnu potrosnju\n";
         cout << "0. Izlaz\n";
         cout << "Vas izbor: ";
 
@@ -35,6 +37,12 @@ int main() {
             aggregator.testWithLargeData();
             break;
         case 5:
+            aggregator.testAllModesSmall();
+            break;
+        case 6:
+            aggregator.testAllModesLarge();
+            break;
+        case 7:
             aggregator.printTotalConsumption();
             break;
         case 0:
