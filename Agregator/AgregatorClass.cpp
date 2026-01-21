@@ -2,6 +2,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 using namespace std;
 
@@ -76,8 +77,21 @@ void Agregator::testWithSmallData() {
 	auto end = std::chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<chrono::milliseconds>(end - start);
 
+	Node* root = network.getRoot();
+	double total = root ? root->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "Vreme izvrsavanja: " << duration.count() << " ms\n";
+
+	// Dokumentovanje u fajl
+	std::ofstream log("TestResults.txt", std::ios::app);
+	if (log.is_open()) {
+		log << "TestWithSmallData (AUTOMATIC default)\n";
+		log << "Broj zahteva: 10\n";
+		log << "Ukupna potrosnja: " << total << " kWh\n";
+		log << "Vreme izvrsavanja: " << duration.count() << " ms\n";
+		log << "----------------------------------------\n";
+	}
 }
 
 void Agregator::testWithLargeData() {
@@ -97,8 +111,21 @@ void Agregator::testWithLargeData() {
 	auto end = chrono::high_resolution_clock::now();
 	auto duration = chrono::duration_cast<std::chrono::milliseconds>(end - start);
 
+	Node* root = network.getRoot();
+	double total = root ? root->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "Vreme izvrsavanja: " << duration.count() << " ms\n";
+
+	// Dokumentovanje u fajl
+	std::ofstream log("TestResults.txt", std::ios::app);
+	if (log.is_open()) {
+		log << "TestWithLargeData (AUTOMATIC default)\n";
+		log << "Broj zahteva: 10000\n";
+		log << "Ukupna potrosnja: " << total << " kWh\n";
+		log << "Vreme izvrsavanja: " << duration.count() << " ms\n";
+		log << "----------------------------------------\n";
+	}
 }
 
 // Testiranje oba režima (AUTOMATIC i BATCH) za mali broj podataka
@@ -118,6 +145,9 @@ void Agregator::testAllModesSmall() {
 	auto endAuto = std::chrono::high_resolution_clock::now();
 	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
 
+	Node* rootAuto = network.getRoot();
+	double totalAuto = rootAuto ? rootAuto->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
 
@@ -134,8 +164,21 @@ void Agregator::testAllModesSmall() {
 	auto endBatch = std::chrono::high_resolution_clock::now();
 	auto durationBatch = chrono::duration_cast<chrono::milliseconds>(endBatch - startBatch);
 
+	Node* rootBatch = network.getRoot();
+	double totalBatch = rootBatch ? rootBatch->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "[BATCH] Vreme izvrsavanja: " << durationBatch.count() << " ms\n";
+
+	// Dokumentovanje u fajl
+	std::ofstream log("TestResults.txt", std::ios::app);
+	if (log.is_open()) {
+		log << "TestAllModesSmall\n";
+		log << "Broj zahteva: 10\n";
+		log << "[AUTOMATIC] Ukupna potrosnja: " << totalAuto << " kWh, vreme: " << durationAuto.count() << " ms\n";
+		log << "[BATCH]     Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
+		log << "----------------------------------------\n";
+	}
 }
 
 // Testiranje oba režima (AUTOMATIC i BATCH) za veliki broj podataka
@@ -155,6 +198,9 @@ void Agregator::testAllModesLarge() {
 	auto endAuto = std::chrono::high_resolution_clock::now();
 	auto durationAuto = chrono::duration_cast<chrono::milliseconds>(endAuto - startAuto);
 
+	Node* rootAuto = network.getRoot();
+	double totalAuto = rootAuto ? rootAuto->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "[AUTOMATIC] Vreme izvrsavanja: " << durationAuto.count() << " ms\n\n";
 
@@ -171,6 +217,19 @@ void Agregator::testAllModesLarge() {
 	auto endBatch = std::chrono::high_resolution_clock::now();
 	auto durationBatch = chrono::duration_cast<chrono::milliseconds>(endBatch - startBatch);
 
+	Node* rootBatch = network.getRoot();
+	double totalBatch = rootBatch ? rootBatch->getAggregatedConsumption() : 0.0;
+
 	printTotalConsumption();
 	cout << "[BATCH] Vreme izvrsavanja: " << durationBatch.count() << " ms\n";
+
+	// Dokumentovanje u fajl
+	std::ofstream log("TestResults.txt", std::ios::app);
+	if (log.is_open()) {
+		log << "TestAllModesLarge\n";
+		log << "Broj zahteva: 10000\n";
+		log << "[AUTOMATIC] Ukupna potrosnja: " << totalAuto << " kWh, vreme: " << durationAuto.count() << " ms\n";
+		log << "[BATCH]     Ukupna potrosnja: " << totalBatch << " kWh, vreme: " << durationBatch.count() << " ms\n";
+		log << "----------------------------------------\n";
+	}
 }
