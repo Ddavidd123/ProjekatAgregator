@@ -22,6 +22,7 @@ int main() {
 		cout << "6. Prikazi strukturu stabla\n";
 		cout << "7. Zahtev prema delu drzave (nodeId 0-6, vidi opciju 6)\n";
 		cout << "8. Zaustavi server\n";
+		cout << "9. Testiraj (memorija, ~10k tacaka, ispis u TestResults.txt)\n";
 		cout << "0. Izlaz\n";
 		cout << "Izbor: ";
 
@@ -78,6 +79,9 @@ int main() {
 		}
 		case 8:
 			aggregator.stopServer();
+			break;
+		case 9:
+			aggregator.runTests();
 			break;
 		case 0:
 			aggregator.stopServer();

@@ -1,77 +1,11 @@
-TestWithSmallData (AUTOMATIC default)
-Broj zahteva: 10
-Ukupna potrosnja: 1889.95 kWh
-Vreme izvrsavanja: 16 ms
-----------------------------------------
-TestAllModesSmall
-Broj zahteva: 10
-[AUTOMATIC] Ukupna potrosnja: 2309.07 kWh, vreme: 0 ms
-[BATCH]     Ukupna potrosnja: 2140.18 kWh, vreme: 0 ms
-----------------------------------------
-TestWithSmallData (AUTOMATIC default)
-Broj zahteva: 10
-Ukupna potrosnja: 2218.91 kWh
-Vreme izvrsavanja: 16 ms
-----------------------------------------
-TestAllModesSmall
-Broj zahteva: 10
-[AUTOMATIC] Ukupna potrosnja: 2314.04 kWh, vreme: 0 ms
-[BATCH]     Ukupna potrosnja: 1861.58 kWh, vreme: 0 ms
-----------------------------------------
-TestWithLargeData (AUTOMATIC default)
-Broj zahteva: 10000
-Ukupna potrosnja: 2.20169e+06 kWh
-Vreme izvrsavanja: 517 ms
-----------------------------------------
-TestWithSmallData (AUTOMATIC default)
-Broj zahteva: 10
-Ukupna potrosnja: 2278.96 kWh
-Vreme izvrsavanja: 0 ms
-----------------------------------------
-TestAllModesSmall
-Broj zahteva: 10
-[AUTOMATIC] Ukupna potrosnja: 2117.83 kWh, vreme: 0 ms
-[BATCH]     Ukupna potrosnja: 2130.25 kWh, vreme: 0 ms
-----------------------------------------
-TestBatchSmall
-Broj zahteva: 10
-[BATCH] Ukupna potrosnja: 2474.18 kWh, vreme: 10 ms
-----------------------------------------
-TestBatchLarge
-Broj zahteva: 10000
-[BATCH] Ukupna potrosnja: 2.20469e+06 kWh, vreme: 274 ms
-----------------------------------------
-TestBatchSmall
-Broj zahteva: 10
-[BATCH] Ukupna potrosnja: 2534.71 kWh, vreme: 0 ms
-----------------------------------------
-TestWithLargeData (AUTOMATIC default)
-Broj zahteva: 10000
-Ukupna potrosnja: 2.20124e+06 kWh
-Vreme izvrsavanja: 273 ms
-----------------------------------------
-TestBatchSmall
-Broj zahteva: 10
-[BATCH] Ukupna potrosnja: 2042.71 kWh, vreme: 0 ms
-----------------------------------------
-TestWithLargeData (AUTOMATIC default)
-Broj zahteva: 10000
-Ukupna potrosnja: 2.19458e+06 kWh
-Vreme izvrsavanja: 274 ms
-----------------------------------------
-[2026-01-29 17:24:36] Test AUTOMATIC mali
-  Rezim: AUTOMATIC
-  Broj podataka: 10 | Ukupna potrosnja: 3452.25 kWh | Vreme: 1 ms
-----------------------------------------
-[2026-01-29 17:24:45] Test AUTOMATIC veliki
-  Rezim: AUTOMATIC
-  Broj podataka: 10000 | Ukupna potrosnja: 3.29471e+06 kWh | Vreme: 744 ms
-----------------------------------------
-[2026-01-29 17:24:58] Test istovremeno mali
-  Rezim: AUTOMATIC | Istovremeno: DA
-  Broj podataka: 60 | Ukupna potrosnja: 3412.15 kWh | Vreme: 2 ms
-----------------------------------------
-[2026-01-29 17:25:04] Test istovremeno veliki
-  Rezim: AUTOMATIC | Istovremeno: DA
-  Broj podataka: 9996 | Ukupna potrosnja: 551766 kWh | Vreme: 25 ms
-----------------------------------------
+Datum: 2026-01-29 20:28:34
+
+Malo - Automatic: 100 izvestaja, 110 ms
+Malo - Batch: 100 izvestaja, 7770 ms
+Veliko - Automatic: 10000 izvestaja, 10412 ms
+Veliko - Batch: 10000 izvestaja, 781649 ms
+
+
+HEAP SUMMARY:
+
+LEAK CHECK:

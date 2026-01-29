@@ -35,6 +35,7 @@ public:
 	void runSubtreeRequest(int nodeId);
 	void printTotalConsumption();
 	void printTreeStructure();
+	void runTests();
 
 	bool isInitialized() const;
 };

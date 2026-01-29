@@ -4,8 +4,21 @@
 #include <thread>
 #include <sstream>
 #include <string>
+#include <fstream>
 #include <cstring>
 #include <cstdlib>
+#include <ctime>
+
+#ifdef _WIN32
+	#include <io.h>
+	#include <fcntl.h>
+	#include <share.h>
+	#include <sys/stat.h>
+#endif
+
+#ifdef _DEBUG
+	#include <crtdbg.h>
+#endif
 
 #ifndef INVALID_SOCKET
 	#define INVALID_SOCKET (-1)
@@ -347,4 +360,176 @@ void Agregator::runSubtreeRequest(int nodeId) {
 void Agregator::printTreeStructure() {
 	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
 	network.printTreeStructure();
+}
+
+static void writeLine(std::ofstream& out, const std::string& s) {
+	out << s << "\n";
+	out.flush();
+}
+
+void Agregator::runTests() {
+	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
+	if (!server_.isRunning()) { cout << "Prvo pokrenite server (opcija 2).\n"; return; }
+
+	vector<ClientConn> clients;
+	server_.getClientsCopy(clients);
+	if (clients.empty()) {
+		cout << "  Nema klijenata. Pokrenite AgregatorClient (npr. 6 terminala) pa ponovo 9.\n";
+		return;
+	}
+
+	const std::string path = "TestResults.txt";
+	std::ofstream out(path, std::ios::out | std::ios::trunc);
+	if (!out) {
+		cerr << "  Nije moguce otvoriti " << path << " za pisanje.\n";
+		return;
+	}
+
+	time_t now = time(nullptr);
+	char buf[80];
+#ifdef _WIN32
+	struct tm t;
+	localtime_s(&t, &now);
+	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
+#else
+	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+#endif
+
+	writeLine(out, std::string("Datum: ") + buf);
+	writeLine(out, "");
+
+#ifdef _DEBUG
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+	_CrtMemState s0, s1, diff;
+	_CrtMemCheckpoint(&s0);
+#endif
+
+	const int MALO = 100;
+	const int VELIKO = 10000;
+
+	auto runAuto = [this, &clients](int target, int& totalReports, int64_t& elapsedMs) {
+		network.setAllNodesMode(OperationMode::AUTOMATIC);
+		network.resetAllConsumptions();
+		totalReports = 0;
+		auto t0 = chrono::steady_clock::now();
+		while (totalReports < target) {
+			for (auto& c : clients) {
+				if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST)) {
+					server_.removeClient(c.sock);
+					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+					continue;
+				}
+				string line;
+				if (!server_.recvLine(c.sock, line)) {
+					server_.removeClient(c.sock);
+					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+					continue;
+				}
+				double v = 0;
+				if (!parseConsumption(line, v)) continue;
+				Node* parent = network.getParentOfConsumer(c.consumerId);
+				if (parent) { parent->receiveConsumption(v); ++totalReports; }
+			}
+			server_.getClientsCopy(clients);
+			if (clients.empty()) break;
+		}
+		auto t1 = chrono::steady_clock::now();
+		elapsedMs = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+	};
+
+	auto runBatch = [this, &clients](int target, int& totalReports, int64_t& elapsedMs) {
+		network.setAllNodesMode(OperationMode::BATCH);
+		network.resetAllConsumptions();
+		totalReports = 0;
+		auto t0 = chrono::steady_clock::now();
+		while (totalReports < target) {
+			for (int step = 0; step < 5; step++) {
+				for (auto& c : clients) server_.sendLine(c.sock, Protocol::CMD_REQUEST_BATCH);
+				this_thread::sleep_for(chrono::milliseconds(5));
+			}
+			for (auto& c : clients) server_.sendLine(c.sock, Protocol::CMD_REQUEST_BATCH_END);
+			for (auto& c : clients) {
+				string line;
+				if (!server_.recvLine(c.sock, line)) {
+					server_.removeClient(c.sock);
+					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+					continue;
+				}
+				double v = 0;
+				if (!parseConsumption(line, v)) continue;
+				Node* parent = network.getParentOfConsumer(c.consumerId);
+				if (parent) { parent->receiveConsumption(v); ++totalReports; }
+			}
+			network.processBatches();
+			server_.getClientsCopy(clients);
+			if (clients.empty()) break;
+		}
+		auto t1 = chrono::steady_clock::now();
+		elapsedMs = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
+	};
+
+	int r1, r2, r3, r4;
+	int64_t e1, e2, e3, e4;
+
+	cout << "  Test malo (automatic)...\n";
+	runAuto(MALO, r1, e1);
+	writeLine(out, "Malo - Automatic: " + to_string(r1) + " izvestaja, " + to_string(e1) + " ms");
+
+	cout << "  Test malo (batch)...\n";
+	server_.getClientsCopy(clients);
+	runBatch(MALO, r2, e2);
+	writeLine(out, "Malo - Batch: " + to_string(r2) + " izvestaja, " + to_string(e2) + " ms");
+
+	cout << "  Test veliko (automatic, ~10k)...\n";
+	server_.getClientsCopy(clients);
+	runAuto(VELIKO, r3, e3);
+	writeLine(out, "Veliko - Automatic: " + to_string(r3) + " izvestaja, " + to_string(e3) + " ms");
+
+	cout << "  Test veliko (batch, ~10k)...\n";
+	server_.getClientsCopy(clients);
+	runBatch(VELIKO, r4, e4);
+	writeLine(out, "Veliko - Batch: " + to_string(r4) + " izvestaja, " + to_string(e4) + " ms");
+
+	writeLine(out, "");
+
+#ifdef _DEBUG
+	_CrtMemCheckpoint(&s1);
+	out.close();
+	if (_CrtMemDifference(&diff, &s0, &s1)) {
+		int fd = -1;
+#ifdef _MSC_VER
+		if (_sopen_s(&fd, path.c_str(), _O_WRONLY | _O_CREAT | _O_APPEND, _SH_DENYNO, _S_IREAD | _S_IWRITE) != 0)
+			fd = -1;
+#else
+		fd = _open(path.c_str(), _O_WRONLY | _O_CREAT | _O_APPEND, _S_IREAD | _S_IWRITE);
+#endif
+		if (fd >= 0) {
+			const char* h1 = "\nHEAP SUMMARY:\n";
+			_write(fd, h1, (unsigned)strlen(h1));
+			_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+			_CrtSetReportFile(_CRT_WARN, (_HFILE)(intptr_t)fd);
+			_CrtMemDumpStatistics(&diff);
+			const char* h2 = "\nLEAK CHECK:\n";
+			_write(fd, h2, (unsigned)strlen(h2));
+			_CrtDumpMemoryLeaks();
+			_close(fd);
+			_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+		} else {
+			out.open(path, std::ios::out | std::ios::app);
+			if (out) { writeLine(out, "(open fail)"); out.close(); }
+		}
+	} else {
+		out.open(path, std::ios::out | std::ios::app);
+		if (out) {
+			writeLine(out, "HEAP SUMMARY: no diff pre/posle.");
+			out.close();
+		}
+	}
+#else
+	out.close();
+#endif
+
+	cout << "  Rezultati upisani u " << path << " (ista mapa kao Agregator.exe, npr. x64/Debug).\n";
 }
