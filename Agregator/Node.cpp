@@ -1,4 +1,4 @@
-﻿#include "Node.h"
+#include "Node.h"
 #include <iostream>
 
 using namespace std;
@@ -21,20 +21,17 @@ void Node::setParent(Node* p) {
 }
 
 void Node::receiveConsumption(double value) {
-	// Svaki report se agregira lokalno
-	aggregatedConsumption += value;
-	
-	if (mode == OperationMode::AUTOMATIC) {
-		// U AUTOMATIC režimu, svaki primljeni report se odmah prosleđuje parentu
-		if (parent != nullptr) {
-			parent->receiveConsumption(value);
-		}
+	Node* p = nullptr;
+	{
+		lock_guard<mutex> lock(mtx_);
+		aggregatedConsumption += value;
+		if (mode == OperationMode::AUTOMATIC)
+			p = parent;
+		else
+			pendingConsumptions.push_back(value);
 	}
-	else { // BATCH mode
-		// U BATCH režimu, samo akumuliramo u lokalni pending spisak,
-		// prosleđivanje nagore se radi u processBatch()
-		pendingConsumptions.push_back(value);
-	}
+	if (p != nullptr)
+		p->receiveConsumption(value);
 }
 
 void Node::requestConsumption() {
@@ -61,7 +58,16 @@ int Node::getId() const {
 	return nodeId;
 }
 
+Node* Node::getParent() {
+	return parent;
+}
+
+const Node* Node::getParent() const {
+	return parent;
+}
+
 double Node::getAggregatedConsumption() const {
+	lock_guard<mutex> lock(mtx_);
 	return aggregatedConsumption;
 }
 
@@ -76,19 +82,16 @@ void Node::processBatch() {
 		child->processBatch();
 	}
 	
-	// 3) Ako je ovaj čvor u BATCH režimu, saberi lokalne pending vrednosti
-	//    i pošalji ih parentu kao objedinjeni izveštaj
 	if (mode == OperationMode::BATCH) {
 		double sum = 0.0;
-		for (double val : pendingConsumptions) {
-			sum += val;
+		{
+			lock_guard<mutex> lock(mtx_);
+			for (double val : pendingConsumptions)
+				sum += val;
+			pendingConsumptions.clear();
 		}
-		
-		if (parent != nullptr && sum > 0.0) {
+		if (parent != nullptr && sum > 0.0)
 			parent->receiveConsumption(sum);
-		}
-		
-		pendingConsumptions.clear();
 	}
 }
 
@@ -100,18 +103,15 @@ void Node::addConsumer(Consumer* consumer)
 }
 
 void Node::resetAggregation() {
-	aggregatedConsumption = 0.0;
-	pendingConsumptions.clear();
-	
-	// Resetuj lokalne potrošače
-	for (Consumer* consumer : nodeConsumers) {
+	{
+		lock_guard<mutex> lock(mtx_);
+		aggregatedConsumption = 0.0;
+		pendingConsumptions.clear();
+	}
+	for (Consumer* consumer : nodeConsumers)
 		consumer->reset();
-	}
-	
-	// Resetuj i child čvorove rekurzivno
-	for (Node* child : children) {
+	for (Node* child : children)
 		child->resetAggregation();
-	}
 }
 
 void Node::printTreeStructure(int indent) const {
@@ -120,13 +120,13 @@ void Node::printTreeStructure(int indent) const {
 		cout << "  ";
 	}
 	
-	// Ispis informacija o čvoru
 	cout << "Node ID: " << nodeId;
-	if (nodeId == 0) {
-		cout << " (ROOT - Drzava)";
-	} else {
+	if (nodeId == 0)
+		cout << " (Data Source - Drzava)";
+	else if (nodeId >= 1 && nodeId <= 6)
+		cout << " (Agr " << (nodeId - 1) << ")";
+	else
 		cout << " (Region)";
-	}
 	
 	// Ispis potrošača povezanih sa ovim čvorom
 	if (!nodeConsumers.empty()) {

@@ -1,6 +1,7 @@
 #include "Consumer.h"
 #include "Node.h"
 #include <random>
+#include <mutex>
 
 Consumer::Consumer(int id, OperationMode m)
     : consumerId(id),
@@ -22,38 +23,46 @@ void Consumer::setParent(Node* p) {
 }
 
 void Consumer::setMode(OperationMode m) {
+    lock_guard<std::mutex> lock(mtx_);
     mode = m;
-    // novi režim -> resetuj batch akumulaciju
     batchAccumulated = 0.0;
 }
 
 void Consumer::handleRequest() {
     double value = generateConsumption();
-	
-    if (mode == OperationMode::AUTOMATIC) {
-        // Svako merenje odmah šalje parentu kao jedan report
-        currentConsumption = value;
-        if (parent) {
-            parent->receiveConsumption(value);
+    Node* p = nullptr;
+    {
+        lock_guard<std::mutex> lock(mtx_);
+        if (mode == OperationMode::AUTOMATIC) {
+            currentConsumption = value;
+            p = parent;
+        }
+        else {
+            batchAccumulated += value;
+            currentConsumption = batchAccumulated;
         }
     }
-    else { // BATCH
-        // Sakuplja merenja u intervalu
-        batchAccumulated += value;
-        currentConsumption = batchAccumulated;
-    }
+    if (p)
+        p->receiveConsumption(value);
 }
 
 void Consumer::flushBatch() {
-    if (mode == OperationMode::BATCH && batchAccumulated > 0.0) {
-        if (parent) {
-            parent->receiveConsumption(batchAccumulated);
+    Node* p = nullptr;
+    double val = 0.0;
+    {
+        lock_guard<std::mutex> lock(mtx_);
+        if (mode == OperationMode::BATCH && batchAccumulated > 0.0) {
+            val = batchAccumulated;
+            batchAccumulated = 0.0;
+            p = parent;
         }
-        batchAccumulated = 0.0;
     }
+    if (p)
+        p->receiveConsumption(val);
 }
 
 void Consumer::reset() {
+    lock_guard<std::mutex> lock(mtx_);
     currentConsumption = 0.0;
     batchAccumulated = 0.0;
 }

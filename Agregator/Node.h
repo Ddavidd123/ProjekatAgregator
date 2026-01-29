@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <mutex>
 #include "Consumer.h"
 using namespace std;
 
@@ -21,6 +22,8 @@ private:
 	// za BATCH režim na nivou agregatora
 	vector<double> pendingConsumptions; // lokalno primljeni, ali još ne prosleđeni nagore
 	vector<Consumer*> nodeConsumers;    // potrošači (listovi) vezani za ovaj čvor
+
+	mutable std::mutex mtx_;  // thread-safety za agregaciju i pending
 	
 public:
 	Node(int id, OperationMode m = OperationMode::AUTOMATIC);
@@ -39,6 +42,8 @@ public:
 	void addConsumer(Consumer* consumer);
 	
 	int getId() const;
+	Node* getParent();
+	const Node* getParent() const;
 	double getAggregatedConsumption() const;
 	
 	// Reset agregacije za novi test/interval

@@ -10,13 +10,18 @@ private:
 	Node* root;
 	map<int, Node*> allNodes;
 	vector<Consumer*> consumers;
+	map<int, Node*> consumerIdToParent_;  // za server: consumerId -> nadredjeni cvor
 	
 public:
 	Network();
 	~Network();
-	
+	Network(const Network&) = delete;
+	Network& operator=(const Network&) = delete;
+
+	void clear();
 	void buildTree();
 	Node* findNode(int nodeId);
+	bool nodeExists(int nodeId) const;
 	
 	// Slanje komande NADOLE
 	void sendRequest(int targetNodeId);   // ka odabranom subtree-ju
@@ -29,7 +34,11 @@ public:
 	void resetAllConsumptions();
 	void setAllNodesMode(OperationMode mode);
 	Node* getRoot() const;
-	
+	const std::vector<Consumer*>& getConsumers() const;
+	Node* getParentOfConsumer(int consumerId) const;
+	bool isValidConsumerId(int consumerId) const;
+	bool isConsumerInSubtree(int consumerId, int nodeId) const;
+
 	// Prikaz strukture stabla (hijerarhija čvorova i potrošača)
 	void printTreeStructure() const;
 };

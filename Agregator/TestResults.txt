@@ -59,3 +59,19 @@ Broj zahteva: 10000
 Ukupna potrosnja: 2.19458e+06 kWh
 Vreme izvrsavanja: 274 ms
 ----------------------------------------
+[2026-01-29 17:24:36] Test AUTOMATIC mali
+  Rezim: AUTOMATIC
+  Broj podataka: 10 | Ukupna potrosnja: 3452.25 kWh | Vreme: 1 ms
+----------------------------------------
+[2026-01-29 17:24:45] Test AUTOMATIC veliki
+  Rezim: AUTOMATIC
+  Broj podataka: 10000 | Ukupna potrosnja: 3.29471e+06 kWh | Vreme: 744 ms
+----------------------------------------
+[2026-01-29 17:24:58] Test istovremeno mali
+  Rezim: AUTOMATIC | Istovremeno: DA
+  Broj podataka: 60 | Ukupna potrosnja: 3412.15 kWh | Vreme: 2 ms
+----------------------------------------
+[2026-01-29 17:25:04] Test istovremeno veliki
+  Rezim: AUTOMATIC | Istovremeno: DA
+  Broj podataka: 9996 | Ukupna potrosnja: 551766 kWh | Vreme: 25 ms
+----------------------------------------

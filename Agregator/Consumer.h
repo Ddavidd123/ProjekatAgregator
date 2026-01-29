@@ -1,5 +1,7 @@
 #pragma once
 
+#include <mutex>
+
 class Node;
 enum class OperationMode;
 
@@ -14,7 +16,8 @@ private:
     OperationMode mode;
     // Akumulacija za BATCH režim
     double batchAccumulated;
-	
+    std::mutex mtx_;  // thread-safety za istovremeno slanje
+
 public:
     Consumer(int id, OperationMode m = (OperationMode)0);
 	
