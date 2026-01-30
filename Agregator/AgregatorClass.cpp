@@ -1,4 +1,6 @@
 #include "Agregator.h"
+#include "CircularBuffer.h"
+#include "ThreadPool.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -191,28 +193,44 @@ void Agregator::runAutomaticMode() {
 	network.setAllNodesMode(OperationMode::AUTOMATIC);
 	network.resetAllConsumptions();
 
+	CircularBuffer buffer(64);
+	ThreadPool pool(8);
 	int received = 0;
 	vector<int> reportedIds;
-	for (auto& c : clients) {
-		if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST)) {
-			server_.removeClient(c.sock);
-			{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-			continue;
-		}
-		string line;
-		if (!server_.recvLine(c.sock, line)) {
-			server_.removeClient(c.sock);
-			{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-			continue;
-		}
-		double v = 0;
-		if (!parseConsumption(line, v)) {
-			cerr << "  ! Ocekivan CONSUMPTION, dobijeno: " << line.substr(0, 50) << "\n";
-			continue;
-		}
-		Node* parent = network.getParentOfConsumer(c.consumerId);
-		if (parent) { parent->receiveConsumption(v); ++received; reportedIds.push_back(c.consumerId); }
+	for (const auto& c : clients) {
+		pool.submit([this, c, &buffer]() {
+			if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST)) {
+				server_.removeClient(c.sock);
+				{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+				return;
+			}
+			string line;
+			if (!server_.recvLine(c.sock, line)) {
+				server_.removeClient(c.sock);
+				{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+				return;
+			}
+			double v = 0;
+			if (!parseConsumption(line, v)) {
+				cerr << "  ! Ocekivan CONSUMPTION, dobijeno: " << line.substr(0, 50) << "\n";
+				return;
+			}
+			buffer.push(ConsumptionReport{ c.consumerId, v });
+		});
 	}
+	thread consumerThread([this, &buffer, &received, &reportedIds]() {
+		ConsumptionReport rep;
+		while (true) {
+			if (buffer.popWait(rep, 500)) {
+				Node* parent = network.getParentOfConsumer(rep.consumerId);
+				if (parent) { parent->receiveConsumption(rep.value); ++received; reportedIds.push_back(rep.consumerId); }
+			} else if (buffer.isDone() && buffer.size() == 0)
+				break;
+		}
+	});
+	pool.waitAll();
+	buffer.setDone();
+	if (consumerThread.joinable()) consumerThread.join();
 	if (received > 0) {
 		cout << "  Primljeno " << received << " izvestaja";
 		if (!reportedIds.empty()) {
@@ -252,23 +270,39 @@ void Agregator::runBatchMode(int intervalSeconds) {
 	}
 	for (auto& c : clients) server_.sendLine(c.sock, Protocol::CMD_REQUEST_BATCH_END);
 
+	CircularBuffer buffer(64);
+	ThreadPool pool(8);
 	int received = 0;
 	vector<int> batchReportedIds;
-	for (auto& c : clients) {
-		string line;
-		if (!server_.recvLine(c.sock, line)) {
-			server_.removeClient(c.sock);
-			{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-			continue;
-		}
-		double v = 0;
-		if (!parseConsumption(line, v)) {
-			cerr << "  ! Ocekivan CONSUMPTION (batch), dobijeno: " << line.substr(0, 50) << "\n";
-			continue;
-		}
-		Node* parent = network.getParentOfConsumer(c.consumerId);
-		if (parent) { parent->receiveConsumption(v); ++received; batchReportedIds.push_back(c.consumerId); }
+	for (const auto& c : clients) {
+		pool.submit([this, c, &buffer]() {
+			string line;
+			if (!server_.recvLine(c.sock, line)) {
+				server_.removeClient(c.sock);
+				{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+				return;
+			}
+			double v = 0;
+			if (!parseConsumption(line, v)) {
+				cerr << "  ! Ocekivan CONSUMPTION (batch), dobijeno: " << line.substr(0, 50) << "\n";
+				return;
+			}
+			buffer.push(ConsumptionReport{ c.consumerId, v });
+		});
 	}
+	thread consumerThread([this, &buffer, &received, &batchReportedIds]() {
+		ConsumptionReport r;
+		while (true) {
+			if (buffer.popWait(r, 500)) {
+				Node* parent = network.getParentOfConsumer(r.consumerId);
+				if (parent) { parent->receiveConsumption(r.value); ++received; batchReportedIds.push_back(r.consumerId); }
+			} else if (buffer.isDone() && buffer.size() == 0)
+				break;
+		}
+	});
+	pool.waitAll();
+	buffer.setDone();
+	if (consumerThread.joinable()) consumerThread.join();
 	if (received > 0) {
 		cout << "  Primljeno " << received << " batch izvestaja";
 		if (!batchReportedIds.empty()) {
@@ -317,28 +351,44 @@ void Agregator::runSubtreeRequest(int nodeId) {
 	network.setAllNodesMode(OperationMode::AUTOMATIC);
 	network.resetAllConsumptions();
 
+	CircularBuffer buffer(64);
+	ThreadPool pool(8);
 	int received = 0;
 	vector<int> subtreeReportedIds;
-	for (auto& c : inSubtree) {
-		if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST_SUBTREE)) {
-			server_.removeClient(c.sock);
-			{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-			continue;
-		}
-		string line;
-		if (!server_.recvLine(c.sock, line)) {
-			server_.removeClient(c.sock);
-			{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-			continue;
-		}
-		double v = 0;
-		if (!parseConsumption(line, v)) {
-			cerr << "  ! Ocekivan CONSUMPTION, dobijeno: " << line.substr(0, 50) << "\n";
-			continue;
-		}
-		Node* parent = network.getParentOfConsumer(c.consumerId);
-		if (parent) { parent->receiveConsumption(v); ++received; subtreeReportedIds.push_back(c.consumerId); }
+	for (const auto& c : inSubtree) {
+		pool.submit([this, c, &buffer]() {
+			if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST_SUBTREE)) {
+				server_.removeClient(c.sock);
+				{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+				return;
+			}
+			string line;
+			if (!server_.recvLine(c.sock, line)) {
+				server_.removeClient(c.sock);
+				{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
+				return;
+			}
+			double v = 0;
+			if (!parseConsumption(line, v)) {
+				cerr << "  ! Ocekivan CONSUMPTION, dobijeno: " << line.substr(0, 50) << "\n";
+				return;
+			}
+			buffer.push(ConsumptionReport{ c.consumerId, v });
+		});
 	}
+	thread consumerThread([this, &buffer, &received, &subtreeReportedIds]() {
+		ConsumptionReport r;
+		while (true) {
+			if (buffer.popWait(r, 500)) {
+				Node* parent = network.getParentOfConsumer(r.consumerId);
+				if (parent) { parent->receiveConsumption(r.value); ++received; subtreeReportedIds.push_back(r.consumerId); }
+			} else if (buffer.isDone() && buffer.size() == 0)
+				break;
+		}
+	});
+	pool.waitAll();
+	buffer.setDone();
+	if (consumerThread.joinable()) consumerThread.join();
 	if (received > 0) {
 		cout << "  Primljeno " << received << " izvestaja";
 		if (!subtreeReportedIds.empty()) {
