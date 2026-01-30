@@ -1,6 +1,6 @@
 #pragma once
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include "Node.h"
 using namespace std;
@@ -8,9 +8,9 @@ using namespace std;
 class Network {
 private:
 	Node* root;
-	map<int, Node*> allNodes;
+	unordered_map<int, Node*> allNodes;
 	vector<Consumer*> consumers;
-	map<int, Node*> consumerIdToParent_;  // za server: consumerId -> nadredjeni cvor
+	unordered_map<int, Node*> consumerIdToParent_;  // za server: consumerId -> nadredjeni cvor
 	
 public:
 	Network();
