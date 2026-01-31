@@ -1,9 +1,8 @@
 #pragma once
 
-#include <vector>
+#include "DynamicArray.h"
 #include <mutex>
 #include "Consumer.h"
-using namespace std;
 
 // Režim rada za čvorove i potrošače
 enum class OperationMode {
@@ -15,13 +14,13 @@ class Node {
 private:
 	int nodeId;
 	Node* parent;
-	vector<Node*> children;
+	DynamicArray<Node*> children;
 	double aggregatedConsumption;
 	OperationMode mode;
 	
 	// za BATCH režim na nivou agregatora
-	vector<double> pendingConsumptions; // lokalno primljeni, ali još ne prosleđeni nagore
-	vector<Consumer*> nodeConsumers;    // potrošači (listovi) vezani za ovaj čvor
+	DynamicArray<double> pendingConsumptions; // lokalno primljeni, ali još ne prosleđeni nagore
+	DynamicArray<Consumer*> nodeConsumers;    // potrošači (listovi) vezani za ovaj čvor
 
 	mutable std::mutex mtx_;  // thread-safety za agregaciju i pending
 	

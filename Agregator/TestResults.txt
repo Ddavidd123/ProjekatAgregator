@@ -1,11 +1,8 @@
-Datum: 2026-01-30 20:07:39
+Datum: 2026-01-31 14:47:11
 
-Malo - Automatic: 100 izvestaja, 78 ms
-Malo - Batch: 100 izvestaja, 3901 ms
-Veliko - Automatic: 10000 izvestaja, 7425 ms
-Veliko - Batch: 10000 izvestaja, 388371 ms
+Malo - Automatic: 100 izvestaja, 40 ms
+Malo - Batch: 100 izvestaja, 3891 ms
+Veliko - Automatic: 10000 izvestaja, 3022 ms
+Veliko - Batch: 10000 izvestaja, 389179 ms
 
-
-HEAP SUMMARY:
-
-LEAK CHECK:
+HEAP SUMMARY: no diff pre/posle.

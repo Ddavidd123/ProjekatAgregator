@@ -3,9 +3,9 @@
 #include "Network.h"
 #include "SocketServer.h"
 #include "Protocol.h"
+#include "IntSet.h"
 #include <thread>
 #include <atomic>
-#include <set>
 #include <mutex>
 
 class Agregator {
@@ -14,7 +14,7 @@ private:
 	SocketServer server_;
 	std::thread acceptThread_;
 	std::atomic<bool> acceptRunning_{ false };
-	std::set<int> registeredIds_;
+	IntSet registeredIds_;
 	std::mutex registeredMutex_;
 	int serverPort_ = Protocol::DEFAULT_PORT;
 

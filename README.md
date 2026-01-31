@@ -41,12 +41,18 @@
   - Sve se **ispisuje u `TestResults.txt`** (ista mapa kao `Agregator.exe`, npr. `x64/Debug`).
   - Build: **Debug** (x64 ili Win32) da bi CRT memorijski izveštaji bili aktivni.
 
-- **Performance Monitor (gde se nalazi i kako koristiti)**
-  - **Gde**: `Win + R` → **perfmon** → Enter (ili pretraga: „Performance Monitor“).
-  - Add Counters (**+**): kategorija **Process**, brojači **Private Bytes**, **Working Set**; instance **Agregator** (i **AgregatorClient** po želji).
-  - Pokreni test (**9**) dok perfmon prati – vidi **alokaciju memorije i heap** u realnom vremenu.
+- **VS Profiler** (CPU, memorija)
+  - U Visual Studio: **Debug** → **Performance Profiler** (Alt+F2) ili **Analyze** → **Performance Profiler**.
+  - Izaberi **CPU Usage** i/ili **Memory Usage**.
+  - Pokreni **Agregator** (F5), inicijalizuj mrežu (1), pokreni server (2), pokreni klijente, zatim test (9).
+  - Zatvori aplikaciju da dobiješ izveštaj – vidi CPU bottlenecke, alokacije, heap.
 
-- **Malo / veliko ručno**: **3** (Automatski) ili **4** (Batch); za ~10k, više rundi dok ne skupiš ~10.000 merenja.
+- **Performance Monitor (perfmon)**
+  - `Win + R` → **perfmon** → Enter.
+  - Add Counters (**+**): **Process** → **Private Bytes**, **Working Set**; instance **Agregator**.
+  - Pokreni test (9) dok perfmon prati.
+
+- **Stress testovi**: Opcija 9 obavlja **dva** scenarija – **malo** (100 izveštaja) i **veliko** (~10.000 izveštaja) u oba režima (Automatic, Batch). Rezultati u `TestResults.txt`. Za dodatne stress testove dogovoriti sa asistentima.
 - Ako vidiš **0 kWh** ili **„Nijedan klijent nije poslao validan CONSUMPTION“**: proveri klijente i da server šalje zahtev (3 ili 4).
 
 ## Protokol (TCP, tekstualno)

@@ -1,8 +1,6 @@
 #include "Node.h"
 #include <iostream>
 
-using namespace std;
-
 Node::Node(int id, OperationMode m)
 	: nodeId(id),
 	  parent(nullptr),
@@ -23,7 +21,7 @@ void Node::setParent(Node* p) {
 void Node::receiveConsumption(double value) {
 	Node* p = nullptr;
 	{
-		lock_guard<mutex> lock(mtx_);
+		std::lock_guard<std::mutex> lock(mtx_);
 		aggregatedConsumption += value;
 		if (mode == OperationMode::AUTOMATIC)
 			p = parent;
@@ -36,22 +34,19 @@ void Node::receiveConsumption(double value) {
 
 void Node::requestConsumption() {
 	// CONTROL DOWN: šalje komandu svim lokalnim potrošačima i child čvorovima
-	for (Consumer* consumer : nodeConsumers) {
-		consumer->handleRequest();
-	}
+	for (size_t i = 0; i < nodeConsumers.size(); ++i)
+		nodeConsumers[i]->handleRequest();
 	
-	for (Node* child : children) {
-		child->requestConsumption();
-	}
+	for (size_t i = 0; i < children.size(); ++i)
+		children[i]->requestConsumption();
 }
 
 void Node::setMode(OperationMode m) {
 	mode = m;
 	
 	// Propagiraj režim i na potrošače ovog čvora
-	for (Consumer* consumer : nodeConsumers) {
-		consumer->setMode(m);
-	}
+	for (size_t i = 0; i < nodeConsumers.size(); ++i)
+		nodeConsumers[i]->setMode(m);
 }
 
 int Node::getId() const {
@@ -67,27 +62,25 @@ const Node* Node::getParent() const {
 }
 
 double Node::getAggregatedConsumption() const {
-	lock_guard<mutex> lock(mtx_);
+	std::lock_guard<std::mutex> lock(mtx_);
 	return aggregatedConsumption;
 }
 
 void Node::processBatch() {
 	// 1) Potrošači šalju svoje batch izveštaje
-	for (Consumer* consumer : nodeConsumers) {
-		consumer->flushBatch();
-	}
+	for (size_t i = 0; i < nodeConsumers.size(); ++i)
+		nodeConsumers[i]->flushBatch();
 	
 	// 2) Recimo i child čvorovi da izvrše svoj batch flush (rekurzivno)
-	for (Node* child : children) {
-		child->processBatch();
-	}
+	for (size_t i = 0; i < children.size(); ++i)
+		children[i]->processBatch();
 	
 	if (mode == OperationMode::BATCH) {
 		double sum = 0.0;
 		{
-			lock_guard<mutex> lock(mtx_);
-			for (double val : pendingConsumptions)
-				sum += val;
+			std::lock_guard<std::mutex> lock(mtx_);
+			for (size_t i = 0; i < pendingConsumptions.size(); ++i)
+				sum += pendingConsumptions[i];
 			pendingConsumptions.clear();
 		}
 		if (parent != nullptr && sum > 0.0)
@@ -104,45 +97,42 @@ void Node::addConsumer(Consumer* consumer)
 
 void Node::resetAggregation() {
 	{
-		lock_guard<mutex> lock(mtx_);
+		std::lock_guard<std::mutex> lock(mtx_);
 		aggregatedConsumption = 0.0;
 		pendingConsumptions.clear();
 	}
-	for (Consumer* consumer : nodeConsumers)
-		consumer->reset();
-	for (Node* child : children)
-		child->resetAggregation();
+	for (size_t i = 0; i < nodeConsumers.size(); ++i)
+		nodeConsumers[i]->reset();
+	for (size_t i = 0; i < children.size(); ++i)
+		children[i]->resetAggregation();
 }
 
 void Node::printTreeStructure(int indent) const {
 	// Ispis indentacije
-	for (int i = 0; i < indent; i++) {
-		cout << "  ";
-	}
+	for (int i = 0; i < indent; i++)
+		std::cout << "  ";
 	
-	cout << "Node ID: " << nodeId;
+	std::cout << "Node ID: " << nodeId;
 	if (nodeId == 0)
-		cout << " (Data Source - Drzava)";
+		std::cout << " (Data Source - Drzava)";
 	else if (nodeId >= 1 && nodeId <= 6)
-		cout << " (Agr " << (nodeId - 1) << ")";
+		std::cout << " (Agr " << (nodeId - 1) << ")";
 	else
-		cout << " (Region)";
+		std::cout << " (Region)";
 	
 	// Ispis potrošača povezanih sa ovim čvorom
 	if (!nodeConsumers.empty()) {
-		cout << " -> Potrosaci: [";
+		std::cout << " -> Potrosaci: [";
 		for (size_t i = 0; i < nodeConsumers.size(); i++) {
-			cout << nodeConsumers[i]->getId();
-			if (i < nodeConsumers.size() - 1) {
-				cout << ", ";
-			}
+			std::cout << nodeConsumers[i]->getId();
+			if (i < nodeConsumers.size() - 1)
+				std::cout << ", ";
 		}
-		cout << "]";
+		std::cout << "]";
 	}
-	cout << "\n";
+	std::cout << "\n";
 	
 	// Rekurzivno ispisuj child čvorove
-	for (Node* child : children) {
-		child->printTreeStructure(indent + 1);
-	}
+	for (size_t i = 0; i < children.size(); ++i)
+		children[i]->printTreeStructure(indent + 1);
 }

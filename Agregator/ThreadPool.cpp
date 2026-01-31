@@ -1,8 +1,9 @@
 #include "ThreadPool.h"
 
 ThreadPool::ThreadPool(size_t numThreads) {
+	workers_.reserve(numThreads);
 	for (size_t i = 0; i < numThreads; ++i)
-		workers_.emplace_back(&ThreadPool::worker, this);
+		workers_.push_back(std::thread(&ThreadPool::worker, this));
 }
 
 ThreadPool::~ThreadPool() {
@@ -33,8 +34,7 @@ void ThreadPool::worker() {
 			std::unique_lock<std::mutex> lock(mtx_);
 			cvTask_.wait(lock, [this] { return stop_ || !tasks_.empty(); });
 			if (stop_ && tasks_.empty()) return;
-			task = std::move(tasks_.front());
-			tasks_.pop();
+			tasks_.pop(task);
 		}
 		task();
 		{

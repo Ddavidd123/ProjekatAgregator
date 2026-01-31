@@ -1,6 +1,7 @@
 #include "Agregator.h"
 #include "CircularBuffer.h"
 #include "ThreadPool.h"
+#include "DynamicArray.h"
 #include <iostream>
 #include <chrono>
 #include <thread>
@@ -94,7 +95,7 @@ void Agregator::acceptLoop(int port) {
 		if (autoAssign) {
 			lock_guard<mutex> lock(registeredMutex_);
 			for (int id = 10; id <= 15; ++id) {
-				if (registeredIds_.count(id) == 0) {
+				if (!registeredIds_.contains(id)) {
 					registeredIds_.insert(id);
 					consumerId = id;
 					ok = true;
@@ -104,14 +105,14 @@ void Agregator::acceptLoop(int port) {
 			if (!ok) errMsg = " nema slobodnih ID (10-15 svi zauzeti). Zatvori neki klijent pa probaj ponovo.";
 		} else if (consumerId >= 0 && network.isValidConsumerId(consumerId)) {
 			lock_guard<mutex> lock(registeredMutex_);
-			if (registeredIds_.count(consumerId) == 0) {
+			if (!registeredIds_.contains(consumerId)) {
 				registeredIds_.insert(consumerId);
 				ok = true;
 			} else {
 				errMsg = " consumerId " + to_string(consumerId) + " zauzet. Pokreni bez arg (auto-dodela): AgregatorClient";
 				bool first = true;
 				for (int id = 10; id <= 15; ++id) {
-					if (registeredIds_.count(id) == 0) {
+					if (!registeredIds_.contains(id)) {
 						if (!first) errMsg += ", ";
 						errMsg += "AgregatorClient " + to_string(id);
 						first = false;
@@ -124,7 +125,7 @@ void Agregator::acceptLoop(int port) {
 		if (ok) {
 			server_.addClient(clientSock, consumerId);
 			server_.sendLine(clientSock, string(Protocol::CMD_OK) + " " + to_string(consumerId));
-			cout << "  + Potrosac " << consumerId << " prikljucen" << (autoAssign ? " (auto)" : "") << ".\n";
+			cout << "  + Potrosac " << consumerId << " prikljucen.\n";
 		} else {
 			server_.sendLine(clientSock, string(Protocol::CMD_ERROR) + errMsg);
 #ifdef _WIN32
@@ -182,7 +183,7 @@ void Agregator::runAutomaticMode() {
 	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
 	if (!server_.isRunning()) { cout << "Prvo pokrenite server (opcija 2).\n"; return; }
 
-	vector<ClientConn> clients;
+	DynamicArray<ClientConn> clients;
 	server_.getClientsCopy(clients);
 	if (clients.empty()) {
 		cout << "  Nema povezanih klijenata. Pokrenite: AgregatorClient 10, AgregatorClient 11, ...\n";
@@ -196,7 +197,7 @@ void Agregator::runAutomaticMode() {
 	CircularBuffer buffer(64);
 	ThreadPool pool(8);
 	int received = 0;
-	vector<int> reportedIds;
+	DynamicArray<int> reportedIds;
 	for (const auto& c : clients) {
 		pool.submit([this, c, &buffer]() {
 			if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST)) {
@@ -250,7 +251,7 @@ void Agregator::runBatchMode(int intervalSeconds) {
 	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
 	if (!server_.isRunning()) { cout << "Prvo pokrenite server (opcija 2).\n"; return; }
 
-	vector<ClientConn> clients;
+	DynamicArray<ClientConn> clients;
 	server_.getClientsCopy(clients);
 	if (clients.empty()) {
 		cout << "  Nema povezanih klijenata. Pokrenite: AgregatorClient 10, AgregatorClient 11, ...\n";
@@ -273,7 +274,7 @@ void Agregator::runBatchMode(int intervalSeconds) {
 	CircularBuffer buffer(64);
 	ThreadPool pool(8);
 	int received = 0;
-	vector<int> batchReportedIds;
+	DynamicArray<int> batchReportedIds;
 	for (const auto& c : clients) {
 		pool.submit([this, c, &buffer]() {
 			string line;
@@ -335,9 +336,9 @@ void Agregator::runSubtreeRequest(int nodeId) {
 		return;
 	}
 
-	vector<ClientConn> clients;
+	DynamicArray<ClientConn> clients;
 	server_.getClientsCopy(clients);
-	vector<ClientConn> inSubtree;
+	DynamicArray<ClientConn> inSubtree;
 	for (auto& c : clients)
 		if (network.isConsumerInSubtree(c.consumerId, nodeId))
 			inSubtree.push_back(c);
@@ -354,7 +355,7 @@ void Agregator::runSubtreeRequest(int nodeId) {
 	CircularBuffer buffer(64);
 	ThreadPool pool(8);
 	int received = 0;
-	vector<int> subtreeReportedIds;
+	DynamicArray<int> subtreeReportedIds;
 	for (const auto& c : inSubtree) {
 		pool.submit([this, c, &buffer]() {
 			if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST_SUBTREE)) {
@@ -421,7 +422,7 @@ void Agregator::runTests() {
 	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
 	if (!server_.isRunning()) { cout << "Prvo pokrenite server (opcija 2).\n"; return; }
 
-	vector<ClientConn> clients;
+	DynamicArray<ClientConn> clients;
 	server_.getClientsCopy(clients);
 	if (clients.empty()) {
 		cout << "  Nema klijenata. Pokrenite AgregatorClient (npr. 6 terminala) pa ponovo 9.\n";

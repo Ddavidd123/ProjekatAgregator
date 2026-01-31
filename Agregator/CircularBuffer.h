@@ -1,17 +1,25 @@
 #pragma once
 
-#include <vector>
 #include <mutex>
 #include <condition_variable>
+#include <cstddef>
 
 struct ConsumptionReport {
 	int consumerId;
 	double value;
 };
 
+/**
+ * Samostalna implementacija kruznog bafera (producer-consumer).
+ * Koristi raw niz - bez STL struktura.
+ */
 class CircularBuffer {
 public:
 	explicit CircularBuffer(size_t capacity);
+	~CircularBuffer();
+	CircularBuffer(const CircularBuffer&) = delete;
+	CircularBuffer& operator=(const CircularBuffer&) = delete;
+
 	bool push(const ConsumptionReport& item);
 	bool pop(ConsumptionReport& item);
 	bool popWait(ConsumptionReport& item, int timeoutMs);
@@ -20,7 +28,7 @@ public:
 	bool isDone() const;
 
 private:
-	std::vector<ConsumptionReport> data_;
+	ConsumptionReport* data_;
 	size_t head_ = 0;
 	size_t tail_ = 0;
 	size_t count_ = 0;

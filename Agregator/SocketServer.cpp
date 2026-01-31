@@ -79,14 +79,15 @@ void SocketServer::stop() {
 	running_ = false;
 	{
 		std::lock_guard<std::mutex> lock(clientsMutex_);
-		for (auto& c : clients_) {
+		for (size_t i = 0; i < clients_.size(); ++i) {
 #ifdef _WIN32
-			closesocket(c.sock);
+			closesocket(clients_[i].sock);
 #else
-			close(c.sock);
+			close(clients_[i].sock);
 #endif
 		}
 		clients_.clear();
+		socketToConsumerId_.clear();
 	}
 	if (listenSock_ != INVALID_SOCKET) {
 #ifdef _WIN32
@@ -133,25 +134,34 @@ bool SocketServer::recvLine(socket_t sock, std::string& out) {
 
 void SocketServer::addClient(socket_t sock, int consumerId) {
 	std::lock_guard<std::mutex> lock(clientsMutex_);
-	clients_.push_back({ sock, consumerId });
+	ClientConn c; c.sock = sock; c.consumerId = consumerId;
+	clients_.push_back(c);
+	socketToConsumerId_.insert(static_cast<size_t>(sock), consumerId);
 }
 
 void SocketServer::removeClient(socket_t sock) {
 	std::lock_guard<std::mutex> lock(clientsMutex_);
-	for (auto it = clients_.begin(); it != clients_.end(); ++it) {
-		if (it->sock == sock) {
+	for (size_t i = 0; i < clients_.size(); ++i) {
+		if (clients_[i].sock == sock) {
 #ifdef _WIN32
-			closesocket(it->sock);
+			closesocket(clients_[i].sock);
 #else
-			close(it->sock);
+			close(clients_[i].sock);
 #endif
-			clients_.erase(it);
+			socketToConsumerId_.erase(static_cast<size_t>(clients_[i].sock));
+			clients_.erase(i);
 			return;
 		}
 	}
 }
 
-void SocketServer::getClientsCopy(std::vector<ClientConn>& out) const {
+int SocketServer::getConsumerIdBySocket(socket_t sock) const {
+	std::lock_guard<std::mutex> lock(clientsMutex_);
+	int id = -1;
+	return socketToConsumerId_.find(static_cast<size_t>(sock), id) ? id : -1;
+}
+
+void SocketServer::getClientsCopy(DynamicArray<ClientConn>& out) const {
 	std::lock_guard<std::mutex> lock(clientsMutex_);
 	out = clients_;
 }

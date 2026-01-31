@@ -1,16 +1,15 @@
 #pragma once
 
-#include <unordered_map>
-#include <vector>
+#include "HashMap.h"
+#include "DynamicArray.h"
 #include "Node.h"
-using namespace std;
 
 class Network {
 private:
 	Node* root;
-	unordered_map<int, Node*> allNodes;
-	vector<Consumer*> consumers;
-	unordered_map<int, Node*> consumerIdToParent_;  // za server: consumerId -> nadredjeni cvor
+	HashMap<int, Node*> allNodes;
+	DynamicArray<Consumer*> consumers;
+	HashMap<int, Node*> consumerIdToParent_;  // za server: consumerId -> nadredjeni cvor
 	
 public:
 	Network();
@@ -34,7 +33,7 @@ public:
 	void resetAllConsumptions();
 	void setAllNodesMode(OperationMode mode);
 	Node* getRoot() const;
-	const std::vector<Consumer*>& getConsumers() const;
+	const DynamicArray<Consumer*>& getConsumers() const;
 	Node* getParentOfConsumer(int consumerId) const;
 	bool isValidConsumerId(int consumerId) const;
 	bool isConsumerInSubtree(int consumerId, int nodeId) const;

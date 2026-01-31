@@ -18,8 +18,9 @@
 	typedef socklen_t socklen_t_use;
 #endif
 
+#include "DynamicArray.h"
+#include "HashMap.h"
 #include <string>
-#include <vector>
 #include <mutex>
 #include <atomic>
 #include <cstddef>
@@ -43,13 +44,15 @@ public:
 
 	void addClient(socket_t sock, int consumerId);
 	void removeClient(socket_t sock);
-	void getClientsCopy(std::vector<ClientConn>& out) const;
+	void getClientsCopy(DynamicArray<ClientConn>& out) const;
+	int getConsumerIdBySocket(socket_t sock) const;  // HashMap potrošača: socket -> consumerId (dizajn)
 
 	socket_t getListenSocket() const { return listenSock_; }
 
 private:
 	socket_t listenSock_;
 	std::atomic<bool> running_;
-	std::vector<ClientConn> clients_;
+	DynamicArray<ClientConn> clients_;
+	HashMap<size_t, int> socketToConsumerId_;  // Hash mapa potrošača: accepted socket -> consumerId (dizajn)
 	mutable std::mutex clientsMutex_;
 };

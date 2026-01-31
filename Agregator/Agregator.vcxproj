@@ -143,6 +143,10 @@
   <ItemGroup>
     <ClInclude Include="Agregator.h" />
     <ClInclude Include="CircularBuffer.h" />
+    <ClInclude Include="DynamicArray.h" />
+    <ClInclude Include="HashMap.h" />
+    <ClInclude Include="IntSet.h" />
+    <ClInclude Include="Queue.h" />
     <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="Consumer.h" />
     <ClInclude Include="Network.h" />

@@ -1,8 +1,13 @@
 #include "CircularBuffer.h"
 #include <chrono>
+#include <new>
 
 CircularBuffer::CircularBuffer(size_t capacity) : capacity_(capacity > 0 ? capacity : 1) {
-	data_.resize(capacity_);
+	data_ = new ConsumptionReport[capacity_];
+}
+
+CircularBuffer::~CircularBuffer() {
+	delete[] data_;
 }
 
 bool CircularBuffer::push(const ConsumptionReport& item) {

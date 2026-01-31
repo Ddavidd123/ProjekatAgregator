@@ -1,13 +1,17 @@
 #pragma once
 
-#include <vector>
+#include "DynamicArray.h"
+#include "Queue.h"
 #include <thread>
-#include <queue>
 #include <functional>
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
 
+/**
+ * Samostalna implementacija thread poola.
+ * Koristi DynamicArray i TaskQueue - bez STL struktura.
+ */
 class ThreadPool {
 public:
 	explicit ThreadPool(size_t numThreads);
@@ -18,8 +22,8 @@ public:
 private:
 	void worker();
 
-	std::vector<std::thread> workers_;
-	std::queue<std::function<void()>> tasks_;
+	DynamicArray<std::thread> workers_;
+	TaskQueue tasks_;
 	std::mutex mtx_;
 	std::condition_variable cvTask_;
 	std::condition_variable cvDone_;

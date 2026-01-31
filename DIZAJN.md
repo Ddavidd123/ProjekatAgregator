@@ -12,7 +12,7 @@
 | **Režim 1**: automatski šalju potrošnju | ✅ Automatski rezim |
 | **Režim 2**: objedinjuju u vremenskom intervalu, šalju objedinjeni izveštaj | ✅ Batch rezim |
 | Izvorni čvor **samo štampa** ukupnu potrošnju | ✅ Urađeno |
-| Testirati oba režima, mali i veliki broj (~10.000), dokumentovati | ⚠️ Testovi uklonjeni pri prelasku na client–server; treba opisati kako testirati |
+| Testirati oba režima, mali i veliki broj (~10.000), dokumentovati | ✅ Opcija **9** – Testiraj (100 + ~10.000 izveštaja, oba režima); rezultati u `TestResults.txt` |
 
 ---
 
@@ -21,19 +21,19 @@
 | Element | Opis | Stanje u kodu |
 |---------|------|----------------|
 | **Država** | Šalje zahtev za potrošnju, eventualno „region x“ | ✅ Šalje zahtev (Automatski/Batch). **„Region x“** = opcija **7** (Zahtev prema delu države, nodeId) |
-| **Centrala** | Prima konekcije, HashMap potrošača, kružni bafer, thread pool, paralelna obrada | ⚠️ Lista klijenata (socket + consumerId), **nema** HashMap, **nema** kružni bafer, **nema** worker thread pool. Obrada **sekvencijalna** |
-| **Potrošač** | ID, gde pripada, koliko potrošio; thread pool za zahteve | ✅ ID i „gde pripada“ (parent u stablu). Klijent = jedan proces, jedan thread; **nema** thread pool |
+| **Centrala** | Prima konekcije, HashMap potrošača, kružni bafer, thread pool, paralelna obrada | ✅ HashMap (socket→consumerId), CircularBuffer, ThreadPool (8 niti); consumer thread čita iz bafera |
+| **Potrošač** | ID, gde pripada, koliko potrošio | ✅ ID i „gde pripada“ (parent u stablu). Klijent = jedan proces |
 
 ---
 
 ## 3. Dokumentacija kolega – šta oni imaju
 
 - **Prijemni thread**: prima nove potrošače, čuva u **HashMap** (ključ socket_fd).  
-  **Kod**: imamo accept thread i listu `(socket, consumerId)`, **nema** HashMap.
-- **Listener thread**: čita zahteve od potrošača, stavlja u **red** (kružni bafer).  
-  **Kod**: **nema** listener niti red; mi šaljemo zahtev prema klijentima, oni odgovaraju.
-- **Worker thread**: uzima iz reda, obrađuje zahtev; ako nema dovoljno struje, ide nadređenom.  
-  **Kod**: **nema** worker pool; obrada u glavnoj niti.
+  **Kod**: accept thread + **HashMap** `socketToConsumerId_` (socket → consumerId) u SocketServer.
+- **Worker threads**: šalju zahtev klijentima, primaju CONSUMPTION, stavljaju u **kružni bafer**.  
+  **Kod**: **ThreadPool** (8 niti) submit-uje taskove; svaki task šalje REQUEST, prima CONSUMPTION, push u **CircularBuffer**.
+- **Consumer thread**: čita iz kružnog bafera, agregira u stablo.  
+  **Kod**: consumer thread sa **popWait**, poziva `parent->receiveConsumption()`.
 - **Thread za nadređenog**: prima odgovore, javlja workerima.  
   **Kod**: **nema** hijerarhiju agregatora (jedan server).
 - **Hijerarhija**: centralni + podređeni agregatori, svaki sa istim dizajnom.  
@@ -52,25 +52,27 @@
 
 ---
 
-## 5. Šta treba dopuniti da sve „stoji“ prema specu i dizajnu
+## 5. Samostalne strukture podataka (bez STL)
 
-1. **0 kWh u Automatskom rezimu**  
-   - Kada je jedan klijent povezan i registrovan, a izabereš Automatski rezim, očekivano je **> 0** kWh.  
-   - Ako ostane 0, treba proveriti: da li server zaista šalje REQUEST, da li klijent šalje CONSUMPTION, da li se vrednost ispravno parsira i dodaje u stablo.
+Implementirane strukture (bez `std::vector`, `std::map`, `std::queue`, `std::set`):
 
-2. **Testiranje (spec: malo / veliko, ~10.000, dokumentovano)**  
-   - Mali broj: npr. 1–2 klijenta, nekoliko uzastopnih Automatski + Batch.  
-   - Veliki: npr. 6 klijenata (10–15), više rundi ( Automatski ili Batch) da ukupno imaš reda ~10.000 merenja.  
-   - Kratko opisati u README / DIZAJN: kako pokrenuti, šta očekivati, gde se vidi ukupna potrošnja.
+| Struktura | Fajl | Namena |
+|-----------|------|--------|
+| **DynamicArray** | `DynamicArray.h` | Dinamički niz (analogon vector) |
+| **HashMap** | `HashMap.h` | Hash mapa (otvoreno adresiranje) – Network (nodeId→Node, consumerId→parent), SocketServer (socket→consumerId) |
+| **CircularBuffer** | `CircularBuffer.h/cpp` | Kružni bafer za ConsumptionReport (producer-consumer) |
+| **TaskQueue** | `Queue.h` | Red zadataka u ThreadPool |
+| **IntSet** | `IntSet.h` | Skup registrovanih consumerId (Agregator) |
 
-3. **Opciono (bliže dizajnu i kolegama)**  
-   - **HashMap** umesto/uz listu (npr. socket → consumerId, brz pristup).  
-   - **Kružni bafer + worker thread pool**: zahteve (ili odgovore) u red, obrada paralelno; bitno ako želiš arhitekturu kao na slici.  
-   - **Hijerarhija agregatora**: više nivoa (centrala ↔ podređeni agregatori) – veća izmena arhitekture.
+## 6. Šta eventualno dopuniti
+
+1. **0 kWh u Automatskom rezimu** – ako se desi, proveri klijente i REQUEST/CONSUMPTION protokol.
+2. **Stress testovi** – dogovor sa asistentima za **dva** stress testa (npr. malo + veliko; ili drugačiji scenariji). Rezultati u `TestResults.txt`.
+3. **VS Profiler** – pogledaj README sekciju ispod.
 
 ---
 
-## 6. Kako pokrenuti i šta raditi
+## 7. Kako pokrenuti i šta raditi
 
 1. **Build**: Agregator (server) + AgregatorClient (klijent).
 2. **Server**:  
@@ -89,10 +91,8 @@
 
 ---
 
-## 7. Rezime
+## 8. Rezime
 
-- **Prema specu**: radimo client–server, stablo, oba režima, izvor samo štampa; **nedostaje** opcija za deo države u meniju i jasan opis testiranja.  
-- **Prema tvom dizajnu**: Država šalje zahtev ✅; Centrala ima osnovnu logiku ✅, ali **nema** HashMap, bafer, thread pool; Potrošač kao proces ✅, bez thread poola.  
-- **Prema kolegama**: značajno jednostavnija varijanta – jedan server, lista klijenata, sekvencijalna obrada; **nema** njihovu hijerarhiju, redove i worker pool.
-
-**Urađeno u ovom krugu**: opcija **7** (Zahtev prema delu države), **isConsumerInSubtree**, ispis **„Primljeno N izvestaja“** u Automatskom i Batch rezimu, i **upozorenje** ako nijedan klijent ne pošalje validan CONSUMPTION (pomaže pri debugu 0 kWh).
+- **Prema specu**: client–server, stablo, oba režima, izvor štampa, opcija 7 (deo države), testiranje (opcija 9).  
+- **Prema tvom dizajnu**: Država ✅; Centrala sa HashMap, CircularBuffer, ThreadPool ✅; Potrošač ✅.  
+- **Strukture podataka**: sve samostalno implementirane (DynamicArray, HashMap, CircularBuffer, TaskQueue, IntSet) – bez STL struktura.

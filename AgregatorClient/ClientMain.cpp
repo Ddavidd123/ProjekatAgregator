@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	if (autoAssign)
-		cout << "AgregatorClient: Spajanje (auto-dodela ID) na " << host << ":" << port << " ...\n";
+		cout << "AgregatorClient: Spajanje na " << host << ":" << port << " ...\n";
 	else
 		cout << "[Potrosac " << consumerId << "] Spajanje na " << host << ":" << port << " ...\n";
 
@@ -60,7 +60,7 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	if (autoAssign)
-		cout << "AgregatorClient: Povezan. Registracija (trazi slobodan ID)...\n";
+		cout << "AgregatorClient: Povezan. Registracija...\n";
 	else
 		cout << "[Potrosac " << consumerId << "] Povezan. Registracija...\n";
 
