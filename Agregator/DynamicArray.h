@@ -6,7 +6,7 @@
 
 /**
  * Samostalna implementacija dinamickog niza (analogon std::vector).
- * Koristi samo raw niz i rucnu alokaciju - bez STL.
+
  */
 template<typename T>
 class DynamicArray {

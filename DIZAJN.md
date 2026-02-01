@@ -12,7 +12,7 @@
 | **Režim 1**: automatski šalju potrošnju | ✅ Automatski rezim |
 | **Režim 2**: objedinjuju u vremenskom intervalu, šalju objedinjeni izveštaj | ✅ Batch rezim |
 | Izvorni čvor **samo štampa** ukupnu potrošnju | ✅ Urađeno |
-| Testirati oba režima, mali i veliki broj (~10.000), dokumentovati | ✅ Opcija **9** – Testiraj (100 + ~10.000 izveštaja, oba režima); rezultati u `TestResults.txt` |
+| Testirati oba režima, mali i veliki broj (~10.000), dokumentovati | ✅ Opcija **9** – Stress test (for petlja ~30s, veliki broj zahteva); rezultati u `TestResults.txt` |
 
 ---
 
@@ -67,7 +67,7 @@ Implementirane strukture (bez `std::vector`, `std::map`, `std::queue`, `std::set
 ## 6. Šta eventualno dopuniti
 
 1. **0 kWh u Automatskom rezimu** – ako se desi, proveri klijente i REQUEST/CONSUMPTION protokol.
-2. **Stress testovi** – dogovor sa asistentima za **dva** stress testa (npr. malo + veliko; ili drugačiji scenariji). Rezultati u `TestResults.txt`.
+2. **Stress test** – opcija 9 (for petlja ~30s). Rezultati u `TestResults.txt` (broj zahteva, vreme, curenje heap-a).
 3. **VS Profiler** – pogledaj README sekciju ispod.
 
 ---

@@ -6,7 +6,7 @@
 
 /**
  * Samostalna implementacija reda (FIFO) - povezana lista.
- * Bez STL struktura.
+
  */
 class TaskQueue {
 public:

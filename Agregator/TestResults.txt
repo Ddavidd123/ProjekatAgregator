@@ -1,4 +1,4 @@
-Datum: 2026-02-01 12:38:07
+Datum: 2026-02-01 13:07:25
 
-Stress test (~30s): 6792 zahteva, 30027 ms
+Stress test (~30s): 165576 zahteva, 30000 ms
 Curenje heap-a: NE

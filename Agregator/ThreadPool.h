@@ -10,7 +10,7 @@
 
 /**
  * Samostalna implementacija thread poola.
- * Koristi DynamicArray i TaskQueue - bez STL struktura.
+
  */
 class ThreadPool {
 public:

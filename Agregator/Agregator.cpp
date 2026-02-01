@@ -8,7 +8,7 @@ int main() {
 
 	cout << "=== Agregator SERVER - Distribuirani servis za potrosnju elektricne energije ===\n\n";
 	cout << "Redosled: 1. Inicijalizuj mrezu -> 2. Pokreni server -> pokreni klijente.\n";
-	cout << "          U svakom terminalu: AgregatorClient (auto-dodela ID 10,11,...,15).\n";
+	
 	cout << "          Zatim 3. Automatski ili 4. Batch, 5. Prikazi potrosnju.\n\n";
 
 	int choice;

@@ -11,7 +11,7 @@ struct ConsumptionReport {
 
 /**
  * Samostalna implementacija kruznog bafera (producer-consumer).
- * Koristi raw niz - bez STL struktura.
+
  */
 class CircularBuffer {
 public:

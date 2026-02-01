@@ -109,7 +109,7 @@ void Agregator::acceptLoop(int port) {
 				registeredIds_.insert(consumerId);
 				ok = true;
 			} else {
-				errMsg = " consumerId " + to_string(consumerId) + " zauzet. Pokreni bez arg (auto-dodela): AgregatorClient";
+				errMsg = " consumerId " + to_string(consumerId) + " zauzet. Pokreni bez arg : AgregatorClient";
 				bool first = true;
 				for (int id = 10; id <= 15; ++id) {
 					if (!registeredIds_.contains(id)) {

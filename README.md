@@ -37,7 +37,8 @@
 - **Opcija 9 – Stress test (~30s, for petlja)**
   - Zahteva: mreža (**1**), server (**2**), bar jedan klijent (npr. 6× `AgregatorClient`).
   - For petlja ~30 sekundi – server šalje REQUEST klijentima, prima CONSUMPTION. Veliki broj zahteva opterećuje server.
-  - Rezultati se **ispisuju u `TestResults.txt`** (broj zahteva, vreme, datum).
+  - CRT debug heap snima stanje pre i posle testa, proverava curenje memorije.
+  - Rezultati se **ispisuju u `TestResults.txt`** (broj zahteva, vreme u ms, da li ima curenja heap-a, datum).
 
 - **VS Profiler** (CPU, memorija)
   - U Visual Studio: **Debug** → **Performance Profiler** (Alt+F2).
