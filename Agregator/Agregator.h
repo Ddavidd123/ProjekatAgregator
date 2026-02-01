@@ -35,7 +35,7 @@ public:
 	void runSubtreeRequest(int nodeId);
 	void printTotalConsumption();
 	void printTreeStructure();
-	void runTests();
+	void runStressTest30s();  // opcija 9: for petlja ~30s, mnogo zahteva, ispis u TestResults.txt
 
 	bool isInitialized() const;
 };

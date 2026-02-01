@@ -413,174 +413,127 @@ void Agregator::printTreeStructure() {
 	network.printTreeStructure();
 }
 
-static void writeLine(std::ofstream& out, const std::string& s) {
-	out << s << "\n";
-	out.flush();
-}
-
-void Agregator::runTests() {
+void Agregator::runStressTest30s() {
 	if (!isInitialized()) { cout << "Prvo inicijalizujte mrezu (opcija 1).\n"; return; }
 	if (!server_.isRunning()) { cout << "Prvo pokrenite server (opcija 2).\n"; return; }
 
 	DynamicArray<ClientConn> clients;
 	server_.getClientsCopy(clients);
 	if (clients.empty()) {
-		cout << "  Nema klijenata. Pokrenite AgregatorClient (npr. 6 terminala) pa ponovo 9.\n";
+		cout << "  Nema klijenata. Pokrenite AgregatorClient (10-15) pa ponovo 9.\n";
 		return;
 	}
 
-	const std::string path = "TestResults.txt";
-	std::ofstream out(path, std::ios::out | std::ios::trunc);
-	if (!out) {
-		cerr << "  Nije moguce otvoriti " << path << " za pisanje.\n";
-		return;
-	}
-
-	time_t now = time(nullptr);
-	char buf[80];
-#ifdef _WIN32
-	struct tm t;
-	localtime_s(&t, &now);
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
-#else
-	strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
-#endif
-
-	writeLine(out, std::string("Datum: ") + buf);
-	writeLine(out, "");
+	const int DURATION_SEC = 30;
+	cout << "\n=== Stress test: for petlja ~" << DURATION_SEC << " sekundi ===\n";
+	cout << "  Klijenata: " << clients.size() << ". Pokrecem...\n\n";
 
 #ifdef _DEBUG
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-	_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
 	_CrtMemState s0, s1, diff;
 	_CrtMemCheckpoint(&s0);
 #endif
 
-	const int MALO = 100;
-	const int VELIKO = 10000;
+	network.setAllNodesMode(OperationMode::AUTOMATIC);
+	network.resetAllConsumptions();
 
-	auto runAuto = [this, &clients](int target, int& totalReports, int64_t& elapsedMs) {
-		network.setAllNodesMode(OperationMode::AUTOMATIC);
-		network.resetAllConsumptions();
-		totalReports = 0;
-		auto t0 = chrono::steady_clock::now();
-		while (totalReports < target) {
-			for (auto& c : clients) {
+	auto tStart = chrono::steady_clock::now();
+	int totalZahteva = 0;
+	int lastReportSec = 0;
+
+	for (;;) {
+		server_.getClientsCopy(clients);
+		if (clients.empty()) break;
+
+		auto elapsed = chrono::duration_cast<chrono::seconds>(chrono::steady_clock::now() - tStart).count();
+		if (elapsed >= DURATION_SEC) break;
+
+		size_t cap = clients.size() + 256;
+		if (cap > 4096) cap = 4096;
+		CircularBuffer buffer(static_cast<size_t>(cap));
+		ThreadPool pool(8);
+		int received = 0;
+
+		for (size_t i = 0; i < clients.size(); ++i) {
+			ClientConn c = clients[i];
+			pool.submit([this, c, &buffer]() {
 				if (!server_.sendLine(c.sock, Protocol::CMD_REQUEST)) {
 					server_.removeClient(c.sock);
 					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-					continue;
+					return;
 				}
 				string line;
 				if (!server_.recvLine(c.sock, line)) {
 					server_.removeClient(c.sock);
 					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-					continue;
+					return;
 				}
 				double v = 0;
-				if (!parseConsumption(line, v)) continue;
-				Node* parent = network.getParentOfConsumer(c.consumerId);
-				if (parent) { parent->receiveConsumption(v); ++totalReports; }
-			}
-			server_.getClientsCopy(clients);
-			if (clients.empty()) break;
+				if (parseConsumption(line, v))
+					buffer.push(ConsumptionReport{ c.consumerId, v });
+			});
 		}
-		auto t1 = chrono::steady_clock::now();
-		elapsedMs = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
-	};
 
-	auto runBatch = [this, &clients](int target, int& totalReports, int64_t& elapsedMs) {
-		network.setAllNodesMode(OperationMode::BATCH);
+		thread consumerThread([this, &buffer, &received]() {
+			ConsumptionReport rep;
+			while (buffer.popWait(rep, 200)) {
+				Node* parent = network.getParentOfConsumer(rep.consumerId);
+				if (parent) { parent->receiveConsumption(rep.value); ++received; }
+			}
+			while (buffer.size() > 0 && buffer.pop(rep)) {
+				Node* parent = network.getParentOfConsumer(rep.consumerId);
+				if (parent) { parent->receiveConsumption(rep.value); ++received; }
+			}
+		});
+		pool.waitAll();
+		buffer.setDone();
+		if (consumerThread.joinable()) consumerThread.join();
+
+		totalZahteva += received;
 		network.resetAllConsumptions();
-		totalReports = 0;
-		auto t0 = chrono::steady_clock::now();
-		while (totalReports < target) {
-			for (int step = 0; step < 5; step++) {
-				for (auto& c : clients) server_.sendLine(c.sock, Protocol::CMD_REQUEST_BATCH);
-				this_thread::sleep_for(chrono::milliseconds(5));
-			}
-			for (auto& c : clients) server_.sendLine(c.sock, Protocol::CMD_REQUEST_BATCH_END);
-			for (auto& c : clients) {
-				string line;
-				if (!server_.recvLine(c.sock, line)) {
-					server_.removeClient(c.sock);
-					{ lock_guard<mutex> lock(registeredMutex_); registeredIds_.erase(c.consumerId); }
-					continue;
-				}
-				double v = 0;
-				if (!parseConsumption(line, v)) continue;
-				Node* parent = network.getParentOfConsumer(c.consumerId);
-				if (parent) { parent->receiveConsumption(v); ++totalReports; }
-			}
-			network.processBatches();
-			server_.getClientsCopy(clients);
-			if (clients.empty()) break;
+
+		if (static_cast<int>(elapsed) >= lastReportSec + 5) {
+			lastReportSec = static_cast<int>(elapsed);
+			cout << "  [" << elapsed << "s] Ukupno zahteva: " << totalZahteva << ", klijenata: " << clients.size() << "\n";
 		}
-		auto t1 = chrono::steady_clock::now();
-		elapsedMs = chrono::duration_cast<chrono::milliseconds>(t1 - t0).count();
-	};
+	}
 
-	int r1, r2, r3, r4;
-	int64_t e1, e2, e3, e4;
-
-	cout << "  Test malo (automatic)...\n";
-	runAuto(MALO, r1, e1);
-	writeLine(out, "Malo - Automatic: " + to_string(r1) + " izvestaja, " + to_string(e1) + " ms");
-
-	cout << "  Test malo (batch)...\n";
-	server_.getClientsCopy(clients);
-	runBatch(MALO, r2, e2);
-	writeLine(out, "Malo - Batch: " + to_string(r2) + " izvestaja, " + to_string(e2) + " ms");
-
-	cout << "  Test veliko (automatic, ~10k)...\n";
-	server_.getClientsCopy(clients);
-	runAuto(VELIKO, r3, e3);
-	writeLine(out, "Veliko - Automatic: " + to_string(r3) + " izvestaja, " + to_string(e3) + " ms");
-
-	cout << "  Test veliko (batch, ~10k)...\n";
-	server_.getClientsCopy(clients);
-	runBatch(VELIKO, r4, e4);
-	writeLine(out, "Veliko - Batch: " + to_string(r4) + " izvestaja, " + to_string(e4) + " ms");
-
-	writeLine(out, "");
+	auto tEnd = chrono::steady_clock::now();
+	auto totalMs = chrono::duration_cast<chrono::milliseconds>(tEnd - tStart).count();
+	cout << "\n  Zavrseno. Ukupno " << totalZahteva << " zahteva u " << totalMs << " ms.\n";
 
 #ifdef _DEBUG
 	_CrtMemCheckpoint(&s1);
-	out.close();
-	if (_CrtMemDifference(&diff, &s0, &s1)) {
-		int fd = -1;
-#ifdef _MSC_VER
-		if (_sopen_s(&fd, path.c_str(), _O_WRONLY | _O_CREAT | _O_APPEND, _SH_DENYNO, _S_IREAD | _S_IWRITE) != 0)
-			fd = -1;
-#else
-		fd = _open(path.c_str(), _O_WRONLY | _O_CREAT | _O_APPEND, _S_IREAD | _S_IWRITE);
-#endif
-		if (fd >= 0) {
-			const char* h1 = "\nHEAP SUMMARY:\n";
-			_write(fd, h1, (unsigned)strlen(h1));
-			_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
-			_CrtSetReportFile(_CRT_WARN, (_HFILE)(intptr_t)fd);
-			_CrtMemDumpStatistics(&diff);
-			const char* h2 = "\nLEAK CHECK:\n";
-			_write(fd, h2, (unsigned)strlen(h2));
-			_CrtDumpMemoryLeaks();
-			_close(fd);
-			_CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
-		} else {
-			out.open(path, std::ios::out | std::ios::app);
-			if (out) { writeLine(out, "(open fail)"); out.close(); }
-		}
-	} else {
-		out.open(path, std::ios::out | std::ios::app);
-		if (out) {
-			writeLine(out, "HEAP SUMMARY: no diff pre/posle.");
-			out.close();
-		}
-	}
-#else
-	out.close();
 #endif
 
-	cout << "  Rezultati upisani u " << path << " (ista mapa kao Agregator.exe, npr. x64/Debug).\n";
+	// Ispis u TestResults.txt
+	const std::string path = "TestResults.txt";
+	std::ofstream out(path, std::ios::out | std::ios::trunc);
+	if (out) {
+		time_t now = time(nullptr);
+		char buf[80];
+#ifdef _WIN32
+		struct tm t;
+		localtime_s(&t, &now);
+		strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &t);
+#else
+		strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+#endif
+		out << "Datum: " << buf << "\n\n";
+		out << "Stress test (~30s): " << totalZahteva << " zahteva, " << totalMs << " ms\n";
+
+#ifdef _DEBUG
+		if (_CrtMemDifference(&diff, &s0, &s1)) {
+			out << "Curenje heap-a: DA\n";
+			out << "(Build u Debug modu za detalje - HEAP SUMMARY, LEAK CHECK)\n";
+		} else {
+			out << "Curenje heap-a: NE\n";
+		}
+#else
+		out << "Curenje heap-a: (proveri u Debug build-u sa CRT)\n";
+#endif
+
+		out.close();
+		cout << "  Rezultati upisani u " << path << "\n";
+	}
+	cout << "\n";
 }

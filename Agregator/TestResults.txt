@@ -1,8 +1,4 @@
-Datum: 2026-01-31 14:47:11
+Datum: 2026-02-01 12:38:07
 
-Malo - Automatic: 100 izvestaja, 40 ms
-Malo - Batch: 100 izvestaja, 3891 ms
-Veliko - Automatic: 10000 izvestaja, 3022 ms
-Veliko - Batch: 10000 izvestaja, 389179 ms
-
-HEAP SUMMARY: no diff pre/posle.
+Stress test (~30s): 6792 zahteva, 30027 ms
+Curenje heap-a: NE

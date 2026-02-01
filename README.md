@@ -29,30 +29,26 @@
    - **6** Prikaži strukturu stabla (nodeId 0–6).
    - **7** Zahtev prema delu države (nodeId) – zahtev samo klijentima u tom delu.
    - **8** Zaustavi server.
-   - **9** Testiraj (memorija, ~10k tačaka, ispis u `TestResults.txt`).
+   - **9** Stress test (~30s, for petlja, ispis u `TestResults.txt`).
    - **0** Izlaz.
 
-## Testiranje (spec: malo / veliko, dokumentovano)
+## Testiranje
 
-- **Opcija 9 – Testiraj (memorija, ~10k tačaka)**
+- **Opcija 9 – Stress test (~30s, for petlja)**
   - Zahteva: mreža (**1**), server (**2**), bar jedan klijent (npr. 6× `AgregatorClient`).
-  - Pokrene malo (100) i veliko (~10.000) izveštaja u **Automatskom** i **Batch** režimu.
-  - Meri vreme, koristi CRT debug heap (**alokacija**, **oslobađanje**, **heap**, **provera curenja**).
-  - Sve se **ispisuje u `TestResults.txt`** (ista mapa kao `Agregator.exe`, npr. `x64/Debug`).
-  - Build: **Debug** (x64 ili Win32) da bi CRT memorijski izveštaji bili aktivni.
+  - For petlja ~30 sekundi – server šalje REQUEST klijentima, prima CONSUMPTION. Veliki broj zahteva opterećuje server.
+  - Rezultati se **ispisuju u `TestResults.txt`** (broj zahteva, vreme, datum).
 
 - **VS Profiler** (CPU, memorija)
-  - U Visual Studio: **Debug** → **Performance Profiler** (Alt+F2) ili **Analyze** → **Performance Profiler**.
+  - U Visual Studio: **Debug** → **Performance Profiler** (Alt+F2).
   - Izaberi **CPU Usage** i/ili **Memory Usage**.
-  - Pokreni **Agregator** (F5), inicijalizuj mrežu (1), pokreni server (2), pokreni klijente, zatim test (9).
-  - Zatvori aplikaciju da dobiješ izveštaj – vidi CPU bottlenecke, alokacije, heap.
+  - Pokreni Agregator, inicijalizuj mrežu (1), pokreni server (2), pokreni klijente, zatim opciju **9**.
 
 - **Performance Monitor (perfmon)**
   - `Win + R` → **perfmon** → Enter.
   - Add Counters (**+**): **Process** → **Private Bytes**, **Working Set**; instance **Agregator**.
-  - Pokreni test (9) dok perfmon prati.
+  - Pokreni opciju **9** dok perfmon prati (pre, za vreme, posle – provera curenja memorije i handle-ova).
 
-- **Stress testovi**: Opcija 9 obavlja **dva** scenarija – **malo** (100 izveštaja) i **veliko** (~10.000 izveštaja) u oba režima (Automatic, Batch). Rezultati u `TestResults.txt`. Za dodatne stress testove dogovoriti sa asistentima.
 - Ako vidiš **0 kWh** ili **„Nijedan klijent nije poslao validan CONSUMPTION“**: proveri klijente i da server šalje zahtev (3 ili 4).
 
 ## Protokol (TCP, tekstualno)
@@ -74,5 +70,5 @@
 | 6 | Prikaži strukturu stabla |
 | 7 | Zahtev prema delu države (nodeId 0–6) |
 | 8 | Zaustavi server |
-| 9 | Testiraj (memorija, ~10k tačaka, ispis u `TestResults.txt`) |
+| 9 | Stress test (~30s, for petlja, ispis u `TestResults.txt`) |
 | 0 | Izlaz |
