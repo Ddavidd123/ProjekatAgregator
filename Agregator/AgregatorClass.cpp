@@ -17,6 +17,7 @@
 	#include <fcntl.h>
 	#include <share.h>
 	#include <sys/stat.h>
+	#include <Windows.h>
 #endif
 
 #ifdef _DEBUG
@@ -505,8 +506,21 @@ void Agregator::runStressTest30s() {
 	_CrtMemCheckpoint(&s1);
 #endif
 
-	// Ispis u TestResults.txt
-	const std::string path = "TestResults.txt";
+	// Ispis u TestResults.txt (pored .exe da se uvek nadje)
+	std::string path;
+#ifdef _WIN32
+	char exePath[MAX_PATH];
+	if (GetModuleFileNameA(nullptr, exePath, MAX_PATH) != 0) {
+		std::string dir(exePath);
+		size_t last = dir.find_last_of("\\/");
+		if (last != std::string::npos) dir.resize(last + 1);
+		path = dir + "TestResults.txt";
+	} else
+		path = "TestResults.txt";
+#else
+	path = "TestResults.txt";
+#endif
+
 	std::ofstream out(path, std::ios::out | std::ios::trunc);
 	if (out) {
 		time_t now = time(nullptr);
@@ -532,8 +546,11 @@ void Agregator::runStressTest30s() {
 		out << "Curenje heap-a: (proveri u Debug build-u sa CRT)\n";
 #endif
 
+		out.flush();
 		out.close();
 		cout << "  Rezultati upisani u " << path << "\n";
+	} else {
+		cout << "  Greska: nije moguce otvoriti " << path << " za pisanje.\n";
 	}
 	cout << "\n";
 }
